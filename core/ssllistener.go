@@ -11,10 +11,10 @@ type MySSLListener interface {
 }
 
 type SSLListenerImpl struct {
-	RawListener  net.Listener
-	Key          []byte
-	II           privacy.EncryptThings
-	ListenChanel chan MySSLSocket
+	RawListener   net.Listener
+	Key           []byte
+	II            privacy.EncryptThings
+	ListenChannel chan MySSLSocket
 }
 
 func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener, error) {
@@ -23,10 +23,10 @@ func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener,
 		return nil, err
 	}
 	lss := &SSLListenerImpl{
-		RawListener:  l,
-		Key:          key,
-		II:           i,
-		ListenChanel: make(chan MySSLSocket),
+		RawListener:   l,
+		Key:           key,
+		II:            i,
+		ListenChannel: make(chan MySSLSocket),
 	}
 
 	go func() {
@@ -48,7 +48,7 @@ func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener,
 					return
 				}
 				log.Println(" handshake success ", conn.RemoteAddr().String())
-				lss.ListenChanel <- sock
+				lss.ListenChannel <- sock
 			}()
 		}
 	}()
@@ -58,7 +58,7 @@ func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener,
 
 func (l *SSLListenerImpl) Accept() (net.Conn, error) {
 
-	conn, ok := <-l.ListenChanel
+	conn, ok := <-l.ListenChannel
 	if !ok {
 		return nil, net.ErrClosed
 	}
@@ -67,7 +67,7 @@ func (l *SSLListenerImpl) Accept() (net.Conn, error) {
 }
 
 func (l *SSLListenerImpl) Close() error {
-	close(l.ListenChanel)
+	close(l.ListenChannel)
 	return l.RawListener.Close()
 }
 

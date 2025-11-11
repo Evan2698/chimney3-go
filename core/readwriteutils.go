@@ -18,15 +18,13 @@ func ReadXBytes(bytes uint32, buffer []byte, con net.Conn) ([]byte, error) {
 	var n int
 	for {
 		n, err = con.Read(buffer[index:])
-		log.Println("read from socket size: ", n, err)
 		if err != nil {
-			log.Println("error on read_bytes_from_socket ", n, err)
+			// only log actual errors (EOF will be surfaced to caller)
+			log.Println("error on read_bytes_from_socket", n, err)
 			break
 		}
 		index = index + uint32(n)
-
 		if index >= bytes {
-			log.Println("read count for output ", index, err)
 			break
 		}
 	}
@@ -34,7 +32,10 @@ func ReadXBytes(bytes uint32, buffer []byte, con net.Conn) ([]byte, error) {
 		err = nil
 	}
 
-	log.Println("read result size: ", index, err)
+	// final result logged only on error for quieter normal operation
+	if err != nil {
+		log.Println("read result size:", index, err)
+	}
 	return buffer[:bytes], err
 }
 
@@ -47,7 +48,7 @@ func WriteXBytes(buffer []byte, con net.Conn) (int, error) {
 	for {
 		n, err = con.Write(buffer[index:])
 		if err != nil {
-			log.Println("write bytes error! ", n, err)
+			log.Println("write bytes error:", n, err)
 			break
 		}
 		index = index + uint32(n)
@@ -59,7 +60,9 @@ func WriteXBytes(buffer []byte, con net.Conn) (int, error) {
 		err = nil
 	}
 
-	log.Println("writeXBytes >>>>>>", n, err)
+	if err != nil {
+		log.Println("writeXBytes error:", n, err)
+	}
 
 	return int(index), err
 }

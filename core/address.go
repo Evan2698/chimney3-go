@@ -6,7 +6,8 @@ import (
 	"strconv"
 )
 
-var (
+const (
+	// Address types used by SOCKS5
 	ADDRESSTYPE_IPV4   byte = 0x01
 	ADDRESSTYPE_DOMAIN byte = 0x03
 	ADDRESSTYPE_IPV6   byte = 0x04

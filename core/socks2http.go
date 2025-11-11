@@ -22,18 +22,18 @@ func Run2HTTP(httpUrl, socks5Url string) error {
 	socks5Addr := socks5Url
 	socksURL, err := url.Parse(socks5Addr)
 	if err != nil {
-		log.Fatal("invalid socks5 url:", err)
+		log.Printf("invalid socks5 url: %v", err)
 		return fmt.Errorf("invalid socks5 url: %w", err)
 	}
 	socks5Dialer, err := proxy.FromURL(socksURL, proxy.Direct)
 	if err != nil {
-		log.Fatal("cannot create proxy dialer:", err)
+		log.Printf("cannot create proxy dialer: %v", err)
 		return fmt.Errorf("cannot create proxy dialer: %w", err)
 	}
 	handler := &HttpProxyRoutineHandler{Dialer: socks5Dialer}
 	log.Printf("HTTP proxy listening on %s, forwarding to SOCKS5 %s", httpUrl, socks5Addr)
 	if err := http.ListenAndServe(httpUrl, handler); err != nil {
-		log.Fatal("cannot start http server:", err)
+		log.Printf("cannot start http server: %v", err)
 		return fmt.Errorf("cannot start http server: %w", err)
 	}
 	return nil
