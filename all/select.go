@@ -5,15 +5,20 @@ import (
 	"chimney3-go/proxy"
 	"chimney3-go/settings"
 	"chimney3-go/socks5"
+	"strings"
 )
 
-var (
+const (
 	PROXY  = "proxy"
 	SOCKS5 = "socks5"
 	KCP    = "kcp"
+	SERVER = "server"
 )
 
-func Reactor(s *settings.Settings, isServer bool) {
+func Reactor(s *settings.Settings) {
+
+	isServer := strings.ToLower(s.Mode) == SERVER
+
 	switch s.Which {
 	case SOCKS5:
 		socks5.RunServer(s, isServer)

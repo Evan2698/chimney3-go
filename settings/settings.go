@@ -6,43 +6,36 @@ import (
 	"os"
 )
 
+// Settings represents the flat configuration from configs/setting.json.
+// Fields match the JSON keys exactly so Parse can unmarshal directly.
 type Settings struct {
-	Server struct {
-		IP       string `json:"ip"`
-		Port     int    `json:"port"`
-		User     string `json:"user"`
-		Password string `json:"password"`
-		Method   string `json:"method"`
-		Udpport  int    `json:"udpport"`
-	} `json:"server"`
-	Client struct {
-		IP       string `json:"ip"`
-		Port     int    `json:"port"`
-		User     string `json:"user"`
-		Password string `json:"password"`
-		Udpport  int    `json:"udpport"`
-		Httpurl  string `json:"httpurl"`
-	} `json:"client"`
-
-	Which string `json:"which"`
+	Listen       string `json:"listen"`
+	RemoteListen string `json:"remote_listen"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	Method       string `json:"method"`
+	Which        string `json:"which"`
+	Udplisten    string `json:"udplisten"`
+	Httpurl      string `json:"httpurl"`
+	Mode         string `json:"mode"`
 }
 
-func Parse(path string) (config *Settings, err error) {
-	file, err := os.Open(path) // For read access.
+// Parse loads the flat settings from a JSON file at path and returns a Settings.
+func Parse(path string) (*Settings, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer f.Close()
 
-	data, err := io.ReadAll(file)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
 
-	config = &Settings{}
-	if err = json.Unmarshal(data, config); err != nil {
+	cfg := &Settings{}
+	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, err
 	}
-
-	return config, nil
+	return cfg, nil
 }

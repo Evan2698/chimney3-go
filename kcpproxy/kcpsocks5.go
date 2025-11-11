@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"strconv"
 	"sync"
 
 	"github.com/xtaci/kcp-go/v5"
@@ -17,12 +16,12 @@ import (
 
 func runKCPClient(s settings.Settings) error {
 
-	httpAddr := s.Client.Httpurl
-	socks5Url := fmt.Sprintf("socks5://%s:%d", s.Client.IP, s.Client.Port)
+	httpAddr := s.Httpurl
+	socks5Url := fmt.Sprintf("socks5://%s", s.Listen)
 	log.Printf("Starting HTTP to SOCKS5 proxy on %s forwarding to %s", httpAddr, socks5Url)
 	go core.Run2HTTP(httpAddr, socks5Url)
 
-	listenAddress := net.JoinHostPort(s.Client.IP, strconv.Itoa(s.Client.Port))
+	listenAddress := s.Listen
 
 	l, err := net.Listen("tcp", listenAddress)
 	if err != nil {
@@ -32,7 +31,7 @@ func runKCPClient(s settings.Settings) error {
 	defer l.Close()
 	log.Printf("KCP client listening on %s", listenAddress)
 
-	key := deriveKey(s.Client.User)
+	key := deriveKey(s.Username)
 	block, err := kcp.NewAESBlockCrypt(key)
 	if err != nil {
 		log.Printf("Error creating block cipher: %v", err)
@@ -54,7 +53,7 @@ func runKCPClient(s settings.Settings) error {
 func handleKCPConnection(conn net.Conn, s settings.Settings, block kcp.BlockCrypt) {
 
 	defer conn.Close()
-	proxyAddr := net.JoinHostPort(s.Server.IP, strconv.Itoa(s.Server.Port))
+	proxyAddr := s.RemoteListen
 	log.Printf("Connecting to KCP server at %s", proxyAddr)
 
 	sess, err := kcp.DialWithOptions(proxyAddr, block, 10, 3)
@@ -77,9 +76,9 @@ func clientRoutine(src, dest net.Conn, wg *sync.WaitGroup) {
 }
 
 func runKCPServer(s settings.Settings) error {
-	listenAddress := net.JoinHostPort(s.Server.IP, strconv.Itoa(s.Server.Port))
+	listenAddress := s.Listen
 
-	key := deriveKey(s.Server.User)
+	key := deriveKey(s.Username)
 	block, err := kcp.NewAESBlockCrypt(key)
 	if err != nil {
 		log.Printf("Error creating block cipher: %v", err)
@@ -94,7 +93,7 @@ func runKCPServer(s settings.Settings) error {
 	defer l.Close()
 	log.Printf("KCP server listening on %s", listenAddress)
 
-	udpServerAddr := net.JoinHostPort(s.Server.IP, strconv.Itoa(s.Server.Udpport))
+	udpServerAddr := s.Udplisten
 	go udpserver.RunUdpServer(udpServerAddr)
 
 	for {

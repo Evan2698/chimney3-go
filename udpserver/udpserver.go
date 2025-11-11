@@ -3,13 +3,14 @@ package udpserver
 import (
 	"log"
 	"net"
+	"sync/atomic"
 	"time"
 	"tun2proxylib/gvisorcore/buffer"
 	"tun2proxylib/udppackage"
 )
 
 var (
-	stop = false
+	stop int32
 )
 
 func RunUdpServer(udpURl string) {
@@ -36,7 +37,7 @@ func RunUdpServer(udpURl string) {
 	defer buffer.Put(buf)
 	for {
 
-		if stop {
+		if atomic.LoadInt32(&stop) != 0 {
 			break
 		}
 
@@ -95,5 +96,5 @@ func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UD
 }
 
 func Stop() {
-	stop = true
+	atomic.StoreInt32(&stop, 1)
 }

@@ -3,8 +3,6 @@ package proxy
 import (
 	"chimney3-go/settings"
 	"chimney3-go/udpserver"
-	"net"
-	"strconv"
 )
 
 func RunServer(s *settings.Settings, isServer bool) {
@@ -19,9 +17,9 @@ func RunServer(s *settings.Settings, isServer bool) {
 
 func runclient(s *settings.Settings) {
 	pc := &proxyClient{
-		Password:     s.Client.Password,
-		LocalHost:    net.JoinHostPort(s.Client.IP, strconv.Itoa(s.Client.Port)),
-		ProxyAddress: net.JoinHostPort(s.Server.IP, strconv.Itoa(s.Server.Port)),
+		Password:     s.Password,
+		LocalHost:    s.Listen,
+		ProxyAddress: s.RemoteListen,
 		Exit:         false,
 	}
 	pc.Serve()
@@ -29,13 +27,13 @@ func runclient(s *settings.Settings) {
 
 func runserver(s *settings.Settings) {
 	ps := &proxyServer{
-		Host:     net.JoinHostPort(s.Server.IP, strconv.Itoa(s.Server.Port)),
-		Password: s.Server.Password,
-		Which:    s.Server.Method,
+		Host:     s.Listen,
+		Password: s.Password,
+		Which:    s.Which,
 		Exit:     false,
 	}
 
-	udpServerAddr := net.JoinHostPort(s.Server.IP, strconv.Itoa(s.Server.Udpport))
+	udpServerAddr := s.Udplisten
 	go udpserver.RunUdpServer(udpServerAddr)
 	ps.Serve()
 }

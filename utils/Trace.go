@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//Trace record function run information
+// Trace record function run information
 func Trace(msg string) func() {
 	t1 := time.Now()
 	log.Println(" Enter [ " + msg + " ]")

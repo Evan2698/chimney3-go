@@ -1,0 +1,11 @@
+{
+  "listen": "0.0.0.0:1080",
+  "remote_listen": "127.0.0.1:1080",
+  "username": "where",
+  "password": "N4gzAraHGgt6EshGZtv2",
+  "method": "CHACHA-20",
+  "which": "socks5",
+  "udplisten": "0.0.0.0:59",
+  "httpurl": "0.0.0.0:4000",
+  "mode": "server"
+}

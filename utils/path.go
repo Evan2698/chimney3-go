@@ -13,7 +13,7 @@ func RetrieveExePath() (string, error) {
 	}
 	re, err := filepath.Abs(file)
 	if err != nil {
-		log.Print("The eacePath failed:", err.Error())
+		log.Printf("failed to get absolute path of executable: %v", err)
 	}
 	//log.Print("The path is ", re)
 	return filepath.Dir(re), err

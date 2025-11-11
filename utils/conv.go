@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//Int2Bytes ...
+// Int2Bytes ...
 func Int2Bytes(n uint32) []byte {
 	u := uint32(n)
 	var hello bytes.Buffer
@@ -14,7 +14,7 @@ func Int2Bytes(n uint32) []byte {
 	return hello.Bytes()
 }
 
-//Bytes2Int ...
+// Bytes2Int ...
 func Bytes2Int(b []byte) uint32 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var tmp uint32
