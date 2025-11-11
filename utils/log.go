@@ -1,40 +1,36 @@
 package utils
 
 import (
-	"fmt"
 	"io"
 	"log"
-	"os"
-	"strconv"
-	"time"
 )
 
-type highspeeddevice struct {
-}
+type DefalutWriter struct{}
 
-func (high *highspeeddevice) Write(p []byte) (n int, err error) {
+func (d DefalutWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func setHighSpeed() io.Writer {
-	return &highspeeddevice{}
-}
-
-func setlogglobal() io.Writer {
-	t := time.Now()
-	timestamp := strconv.FormatInt(t.UTC().UnixNano(), 10)
-	var logpath = "log_" + timestamp + ".txt"
-	var file io.Writer
-	var err1 error
-	file, err1 = os.Create(logpath)
-	if err1 != nil {
-		fmt.Print("can not create log file", err1)
-		file = &highspeeddevice{}
-	}
-	return io.MultiWriter(os.Stdout, file)
-}
+// Logger is the package-level logger used by utils APIs. Callers can replace
+// it with SetLogger or SetLogOutput to redirect logs (helpful for tests).
+var Logger *log.Logger
 
 func init() {
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
-	log.SetOutput(setHighSpeed())
+	// default logger writes to stdout with a useful timestamp and file info.
+	Logger = log.New(&DefalutWriter{}, "", log.Ldate|log.Lmicroseconds|log.Llongfile)
+}
+
+// SetLogOutput replaces the output writer for the package logger. If a file
+// writer is desired, provide an io.Writer that writes to the file (e.g. os.File).
+func SetLogOutput(w io.Writer) {
+	if Logger == nil {
+		Logger = log.New(w, "", log.Ldate|log.Lmicroseconds|log.Llongfile)
+		return
+	}
+	Logger.SetOutput(w)
+}
+
+// SetLogger allows replacing the entire logger (e.g., for tests).
+func SetLogger(l *log.Logger) {
+	Logger = l
 }

@@ -2,8 +2,8 @@ package vpncore
 
 import (
 	"chimney3-go/socks5"
-	"context"
 	"log"
+	"sync"
 
 	"tun2proxylib/mobile"
 
@@ -27,12 +27,15 @@ type Chimney struct {
 var (
 	client   socks5.Socks5Server
 	netstack *stack.Stack
+	wg       sync.WaitGroup
 )
 
 // StartChimney starts the VPN components and runs the socks5 server under
 // the given context. When ctx is canceled, the server and netstack will be
 // stopped.
-func StartChimney(ctx context.Context, c *Chimney) error {
+func StartChimney(c *Chimney) error {
+
+	wg.Add(1)
 
 	var err error
 	client = buildVpnClient("127.0.0.1:1080", c.TcpProxyUrl, c.User, c.Pass, c.Pfun)
@@ -52,7 +55,8 @@ func StartChimney(ctx context.Context, c *Chimney) error {
 	}()
 
 	go func() {
-		<-ctx.Done()
+		wg.Wait()
+
 		if client != nil {
 			client.Stop()
 			client = nil
@@ -67,14 +71,5 @@ func StartChimney(ctx context.Context, c *Chimney) error {
 }
 
 func StopChimney() {
-
-	if netstack != nil {
-		netstack.Close()
-		netstack = nil
-	}
-
-	if client != nil {
-		client.Stop()
-		client = nil
-	}
+	wg.Done()
 }
