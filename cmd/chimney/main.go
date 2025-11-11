@@ -23,11 +23,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	jsonPath := dir + "configs/setting.json"
-	settings, err := settings.Parse(jsonPath)
+	jsonPath := dir + "/configs/setting.json"
+	cfg, err := settings.Parse(jsonPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed to load config:", err)
 		os.Exit(1)
 	}
-	all.Reactor(settings)
+
+	if err := all.Reactor(cfg); err != nil {
+		fmt.Fprintln(os.Stderr, "failed to start service:", err)
+		os.Exit(1)
+	}
 }
