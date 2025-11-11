@@ -5,9 +5,9 @@ import (
 	"log"
 )
 
-type DefalutWriter struct{}
+type DefaultWriter struct{}
 
-func (d DefalutWriter) Write(p []byte) (n int, err error) {
+func (d DefaultWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
@@ -17,7 +17,7 @@ var Logger *log.Logger
 
 func init() {
 	// default logger writes to stdout with a useful timestamp and file info.
-	Logger = log.New(&DefalutWriter{}, "", log.Ldate|log.Lmicroseconds|log.Llongfile)
+	Logger = log.New(&DefaultWriter{}, "", log.Ldate|log.Lmicroseconds|log.Llongfile)
 }
 
 // SetLogOutput replaces the output writer for the package logger. If a file
