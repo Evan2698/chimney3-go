@@ -1,10 +1,8 @@
 package privacy
 
 import (
-	"bytes"
 	"chimney3-go/utils"
 	"crypto/rand"
-	"errors"
 	"io"
 )
 
@@ -49,28 +47,16 @@ func (raw *rawMethod) GetSize() int {
 }
 
 func (raw *rawMethod) ToBytes() []byte {
-	var op bytes.Buffer
-	mask := utils.Uint162Bytes(rawCode)
-	op.Write(mask)
-	lv := (byte)(len(raw.iv))
-	op.WriteByte(lv)
-	if lv > 0 {
-		op.Write(raw.iv)
-	}
-	return op.Bytes()
+	return methodToBytes(rawCode, raw.iv)
 }
 
 // From bytes
 func (raw *rawMethod) FromBytes(v []byte) error {
-	op := bytes.NewBuffer(v)
-	lvl := op.Next(1)
-	if len(lvl) < 1 {
-		return errors.New("out of length")
+	iv, err := methodFromBytes(v)
+	if err != nil {
+		return err
 	}
-
-	value := int(lvl[0])
-	if value > 0 {
-		iv := op.Next(value)
+	if iv != nil {
 		raw.SetIV(iv)
 	}
 	return nil

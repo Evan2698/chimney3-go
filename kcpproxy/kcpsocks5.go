@@ -4,6 +4,7 @@ import (
 	"chimney3-go/core"
 	"chimney3-go/settings"
 	"chimney3-go/udpserver"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -14,7 +15,7 @@ import (
 	"github.com/xtaci/kcp-go/v5"
 )
 
-func runKCPClient(s settings.Settings) error {
+func runKCPClientCtx(ctx context.Context, s settings.Settings) error {
 
 	httpAddr := s.Httpurl
 	socks5Url := fmt.Sprintf("socks5://%s", s.Listen)
@@ -25,9 +26,14 @@ func runKCPClient(s settings.Settings) error {
 
 	l, err := net.Listen("tcp", listenAddress)
 	if err != nil {
-		log.Fatalf("Error listening on %s: %v", listenAddress, err)
+		log.Printf("Error listening on %s: %v", listenAddress, err)
 		return err
 	}
+	// ensure listener is closed when context is done
+	go func() {
+		<-ctx.Done()
+		l.Close()
+	}()
 	defer l.Close()
 	log.Printf("KCP client listening on %s", listenAddress)
 
@@ -41,7 +47,13 @@ func runKCPClient(s settings.Settings) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			log.Printf("Error accepting connection: %v", err)
+			select {
+			case <-ctx.Done():
+				// listener closed due to context cancellation
+				break
+			default:
+				log.Printf("Error accepting connection: %v", err)
+			}
 			break
 		}
 		go handleKCPConnection(conn, s, block)
@@ -75,7 +87,7 @@ func clientRoutine(src, dest net.Conn, wg *sync.WaitGroup) {
 	io.Copy(dest, src)
 }
 
-func runKCPServer(s settings.Settings) error {
+func runKCPServerCtx(ctx context.Context, s settings.Settings) error {
 	listenAddress := s.Listen
 
 	key := deriveKey(s.Username)
@@ -87,9 +99,14 @@ func runKCPServer(s settings.Settings) error {
 
 	l, err := kcp.ListenWithOptions(listenAddress, block, 10, 3)
 	if err != nil {
-		log.Fatalf("Error listening on %s: %v", listenAddress, err)
+		log.Printf("Error listening on %s: %v", listenAddress, err)
 		return err
 	}
+	// ensure listener is closed when context is done
+	go func() {
+		<-ctx.Done()
+		l.Close()
+	}()
 	defer l.Close()
 	log.Printf("KCP server listening on %s", listenAddress)
 
@@ -99,7 +116,13 @@ func runKCPServer(s settings.Settings) error {
 	for {
 		sess, err := l.AcceptKCP()
 		if err != nil {
-			log.Printf("Error accepting KCP connection: %v", err)
+			select {
+			case <-ctx.Done():
+				// listener closed due to context cancellation
+				break
+			default:
+				log.Printf("Error accepting KCP connection: %v", err)
+			}
 			break
 		}
 		go handleKCPServerSession(sess)
@@ -176,9 +199,9 @@ func handleKCPServerSession(conn *kcp.UDPSession) {
 }
 
 func RunKCPRoutine(s *settings.Settings, isServer bool) error {
+	// keep compatibility: run with background context
 	if isServer {
-		return runKCPServer(*s)
-	} else {
-		return runKCPClient(*s)
+		return runKCPServerCtx(context.Background(), *s)
 	}
+	return runKCPClientCtx(context.Background(), *s)
 }

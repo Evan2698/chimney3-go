@@ -26,8 +26,8 @@ func buildVpnClient(localListenUrl, proxyUrl string, user, pass string, p mobile
 	socks5Url := fmt.Sprintf("socks5://%s", localListenUrl)
 	log.Printf("Starting HTTP to SOCKS5 proxy on %s forwarding to %s", localListenUrl, socks5Url)
 
-	go server.Serve()
-
+	// Do not start the server here; let the caller (StartChimney) decide how
+	// and when to run it so we can control lifecycle with a context.
 	return server
 }
 

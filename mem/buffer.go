@@ -17,8 +17,11 @@ type Buffer interface {
 }
 
 var (
-	instance          *bufferHolder
-	once              sync.Once
+	instance *bufferHolder
+	once     sync.Once
+)
+
+const (
 	LARGE_BUFFER_SIZE = 4096
 	SMALL_BUFFER_SIZE = 512
 )
@@ -32,6 +35,12 @@ func NewApplicationBuffer() Buffer {
 	})
 	return instance
 }
+
+// Convenience package-level helpers so callers don't need to call NewApplicationBuffer().
+func GetLarge() []byte  { return NewApplicationBuffer().GetLarge() }
+func PutLarge(b []byte) { NewApplicationBuffer().PutLarge(b) }
+func GetSmall() []byte  { return NewApplicationBuffer().GetSmall() }
+func PutSmall(b []byte) { NewApplicationBuffer().PutSmall(b) }
 
 func (b *bufferHolder) GetLarge() []byte {
 	return b.largebuffer.Get()

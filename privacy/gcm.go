@@ -1,7 +1,6 @@
 package privacy
 
 import (
-	"bytes"
 	"chimney3-go/utils"
 
 	"crypto/aes"
@@ -9,7 +8,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"io"
-	"log"
 )
 
 type gcm struct {
@@ -26,13 +24,11 @@ func (g *gcm) Compress(src []byte, key []byte, out []byte) (int, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		log.Println("key of AES is invalid!")
 		return 0, err
 	}
 
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
-		log.Println("key of AES is invalid!")
 		return 0, err
 	}
 
@@ -56,13 +52,11 @@ func (g *gcm) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		log.Println("key of AES is invalid!(uncompress)")
 		return 0, err
 	}
 
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
-		log.Println("key of AES is invalid!(uncompress)")
 		return 0, err
 	}
 
@@ -104,28 +98,16 @@ func (g *gcm) GetSize() int {
 }
 
 func (g *gcm) ToBytes() []byte {
-	var op bytes.Buffer
-	mask := utils.Uint162Bytes(gcmCode)
-	op.Write(mask)
-	lv := (byte)(len(g.iv))
-	op.WriteByte(lv)
-	if lv > 0 {
-		op.Write(g.iv)
-	}
-	return op.Bytes()
+	return methodToBytes(gcmCode, g.iv)
 }
 
 // From bytes
 func (g *gcm) FromBytes(v []byte) error {
-	op := bytes.NewBuffer(v)
-	lvl := op.Next(1)
-	if len(lvl) < 1 {
-		return errors.New("out of length")
+	iv, err := methodFromBytes(v)
+	if err != nil {
+		return err
 	}
-
-	value := int(lvl[0])
-	if value > 0 {
-		iv := op.Next(value)
+	if iv != nil {
 		g.SetIV(iv)
 	}
 	return nil

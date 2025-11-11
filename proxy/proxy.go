@@ -5,27 +5,27 @@ import (
 	"chimney3-go/udpserver"
 )
 
-func RunServer(s *settings.Settings, isServer bool) {
-
+// RunServer starts the proxy subsystem. It returns an error when startup or
+// the running subsystem encounters a terminal error. Callers should decide
+// whether to log/fatal or attempt recovery.
+func RunServer(s *settings.Settings, isServer bool) error {
 	if isServer {
-		runserver(s)
-
-	} else {
-		runclient(s)
+		return runserver(s)
 	}
+	return runclient(s)
 }
 
-func runclient(s *settings.Settings) {
+func runclient(s *settings.Settings) error {
 	pc := &proxyClient{
 		Password:     s.Password,
 		LocalHost:    s.Listen,
 		ProxyAddress: s.RemoteListen,
 		Exit:         false,
 	}
-	pc.Serve()
+	return pc.Serve()
 }
 
-func runserver(s *settings.Settings) {
+func runserver(s *settings.Settings) error {
 	ps := &proxyServer{
 		Host:     s.Listen,
 		Password: s.Password,
@@ -35,5 +35,5 @@ func runserver(s *settings.Settings) {
 
 	udpServerAddr := s.Udplisten
 	go udpserver.RunUdpServer(udpServerAddr)
-	ps.Serve()
+	return ps.Serve()
 }

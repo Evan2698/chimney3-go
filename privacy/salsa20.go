@@ -1,8 +1,6 @@
 package privacy
 
 import (
-	"bytes"
-	"chimney3-go/utils"
 	"crypto/rand"
 	"errors"
 	"io"
@@ -71,28 +69,16 @@ func (g *salsa_20) GetSize() int {
 }
 
 func (g *salsa_20) ToBytes() []byte {
-	var op bytes.Buffer
-	mask := utils.Uint162Bytes(gcmCode)
-	op.Write(mask)
-	lv := (byte)(len(g.iv))
-	op.WriteByte(lv)
-	if lv > 0 {
-		op.Write(g.iv)
-	}
-	return op.Bytes()
+	return methodToBytes(salsaCode, g.iv)
 }
 
 // From bytes
 func (g *salsa_20) FromBytes(v []byte) error {
-	op := bytes.NewBuffer(v)
-	lvl := op.Next(1)
-	if len(lvl) < 1 {
-		return errors.New("out of length")
+	iv, err := methodFromBytes(v)
+	if err != nil {
+		return err
 	}
-
-	value := int(lvl[0])
-	if value > 0 {
-		iv := op.Next(value)
+	if iv != nil {
 		g.SetIV(iv)
 	}
 	return nil

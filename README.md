@@ -1,4 +1,4 @@
-# chimney3-go (refactored)
+# chimney3-go 
 
 This repository was refactored to follow a conventional Go layout. The executable entrypoint now lives in `cmd/chimney`.
 

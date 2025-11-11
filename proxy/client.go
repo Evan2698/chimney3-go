@@ -18,41 +18,38 @@ type proxyClient struct {
 }
 
 type ProxyClient interface {
-	Serve()
-	Close()
+	Serve() error
+	Close() error
 }
 
-func (c *proxyClient) Serve() {
+func (c *proxyClient) Serve() error {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(" fatal error on serveOn: ", err)
 		}
 	}()
-
 	l, err := net.Listen("tcp", c.LocalHost)
 	if err != nil {
-		log.Println("listen failed ", err)
-		return
+		return err
 	}
-
 	defer l.Close()
 
 	for {
 		con, err := l.Accept()
 		if err != nil {
-			log.Println(" accept failed ", err)
-			break
+			// listener closed or accept error — return to caller
+			return err
 		}
 		if c.Exit {
-			log.Println(" accept failed ", err)
-			break
+			return nil
 		}
 		go c.serveOn(con)
 	}
 }
 
-func (c *proxyClient) Close() {
+func (c *proxyClient) Close() error {
 	c.Exit = true
+	return nil
 }
 
 func (c *proxyClient) serveOn(con net.Conn) {

@@ -1,9 +1,7 @@
 package privacy
 
 import (
-	"bytes"
 	"chimney3-go/privacy/chacha20"
-	"chimney3-go/utils"
 	"crypto/rand"
 	"errors"
 	"io"
@@ -61,28 +59,16 @@ func (chacha *cha20) GetSize() int {
 }
 
 func (chacha *cha20) ToBytes() []byte {
-	var op bytes.Buffer
-	mask := utils.Uint162Bytes(chacha20Code)
-	op.Write(mask)
-	lv := (byte)(len(chacha.iv))
-	op.WriteByte(lv)
-	if lv > 0 {
-		op.Write(chacha.iv)
-	}
-	return op.Bytes()
+	return methodToBytes(chacha20Code, chacha.iv)
 }
 
 // From bytes
 func (chacha *cha20) FromBytes(v []byte) error {
-	op := bytes.NewBuffer(v)
-	lvl := op.Next(1)
-	if len(lvl) < 1 {
-		return errors.New("out of length")
+	iv, err := methodFromBytes(v)
+	if err != nil {
+		return err
 	}
-
-	value := int(lvl[0])
-	if value > 0 {
-		iv := op.Next(value)
+	if iv != nil {
 		chacha.SetIV(iv)
 	}
 	return nil

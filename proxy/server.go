@@ -22,16 +22,18 @@ type proxyServer struct {
 	Password string
 	Which    string
 	Exit     bool
+	server   *http.Server
+	listener core.MySSLListener
 }
 
-func (p *proxyServer) Serve() {
+func (p *proxyServer) Serve() error {
 	key := privacy.MakeCompressKey(p.Password)
 	II := privacy.NewMethodWithName(p.Which)
 	l, err := core.ListenSSL(p.Host, key, II)
 	if err != nil {
-		log.Println("listen failed ", err)
-		return
+		return err
 	}
+	p.listener = l
 
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +46,9 @@ func (p *proxyServer) Serve() {
 		// Disable HTTP/2.
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
+	p.server = server
 
-	server.Serve(l)
+	return server.Serve(l)
 }
 
 func handleTunneling(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +99,14 @@ func copyHeader(dst, src http.Header) {
 	}
 }
 
-func (p *proxyServer) Close() {
-	// Implement the logic to close the proxy server
+func (p *proxyServer) Close() error {
+	// Try to gracefully stop the HTTP server and close listener.
+	if p.server != nil {
+		_ = p.server.Close()
+	}
+	if p.listener != nil {
+		_ = p.listener.Close()
+	}
 	p.Exit = true
+	return nil
 }

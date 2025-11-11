@@ -1,12 +1,10 @@
 package privacy
 
 import (
-	"bytes"
 	"chimney3-go/utils"
 	"crypto/rand"
 	"errors"
 	"io"
-	"log"
 
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -22,10 +20,8 @@ const (
 
 func (p *ploy) Compress(src []byte, key []byte, out []byte) (int, error) {
 	defer utils.Trace("Compress")()
-
 	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
-		log.Println("key of chacha20Poly1305 is invalid!")
 		return 0, err
 	}
 
@@ -46,10 +42,8 @@ func (p *ploy) Compress(src []byte, key []byte, out []byte) (int, error) {
 
 func (p *ploy) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 	defer utils.Trace("Uncompress")()
-
 	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
-		log.Println("key of chacha20Poly1305 is invalid!(uncompress)")
 		return 0, err
 	}
 
@@ -90,28 +84,16 @@ func (p *ploy) GetSize() int {
 }
 
 func (p *ploy) ToBytes() []byte {
-	var op bytes.Buffer
-	mask := utils.Uint162Bytes(ployCode)
-	op.Write(mask)
-	lv := (byte)(len(p.iv))
-	op.WriteByte(lv)
-	if lv > 0 {
-		op.Write(p.iv)
-	}
-	return op.Bytes()
+	return methodToBytes(ployCode, p.iv)
 }
 
 // From bytes
 func (p *ploy) FromBytes(v []byte) error {
-	op := bytes.NewBuffer(v)
-	lvl := op.Next(1)
-	if len(lvl) < 1 {
-		return errors.New("out of length")
+	iv, err := methodFromBytes(v)
+	if err != nil {
+		return err
 	}
-
-	value := int(lvl[0])
-	if value > 0 {
-		iv := op.Next(value)
+	if iv != nil {
 		p.SetIV(iv)
 	}
 	return nil

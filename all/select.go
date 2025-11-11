@@ -27,10 +27,7 @@ func Reactor(s *settings.Settings) error {
 	case SOCKS5:
 		return socks5.RunServer(s, isServer)
 	case PROXY:
-		// proxy.RunServer currently doesn't return an error; keep
-		// behavior but wrap in nil for a consistent signature.
-		proxy.RunServer(s, isServer)
-		return nil
+		return proxy.RunServer(s, isServer)
 	case KCP:
 		return kcpproxy.RunKCPRoutine(s, isServer)
 	default:

@@ -30,6 +30,7 @@ type Socks5S struct {
 	Settings *Socks5ServerSettings
 	Exit     bool
 	Protect  mobile.ProtectSocket
+	listener net.Listener
 }
 
 type socks5session struct {
@@ -62,6 +63,7 @@ func (s *Socks5S) Serve() error {
 		log.Println("listen failed ", err)
 		return err
 	}
+	s.listener = l
 	defer func() {
 		l.Close()
 	}()
@@ -94,6 +96,9 @@ func (s *Socks5S) Serve() error {
 
 func (s *Socks5S) Stop() {
 	s.Exit = true
+	if s.listener != nil {
+		_ = s.listener.Close()
+	}
 }
 
 func (s *Socks5S) serveOn(session *socks5session) {
