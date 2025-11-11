@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"time"
 )
 
@@ -9,12 +10,8 @@ import (
 // time. Example: defer utils.Trace("myFunc")()
 func Trace(msg string) func() {
 	t1 := time.Now()
-	if Logger != nil {
-		Logger.Println(" Enter [ " + msg + " ]")
-	}
+	log.Println(" Enter [ " + msg + " ]")
 	return func() {
-		if Logger != nil {
-			Logger.Println(" Leave [ "+msg+" ], takes times:", time.Since(t1))
-		}
+		log.Println(" Leave [ "+msg+" ], takes times:", time.Since(t1))
 	}
 }

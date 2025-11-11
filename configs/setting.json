@@ -1,6 +1,6 @@
 {
-  "listen": "0.0.0.0:1080",
-  "remote_listen": "127.0.0.1:1080",
+  "listen": "0.0.0.0:5050",
+  "remote_listen": "127.0.0.1:9080",
   "username": "where",
   "password": "N4gzAraHGgt6EshGZtv2",
   "method": "CHACHA-20",

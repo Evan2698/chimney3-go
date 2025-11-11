@@ -15,6 +15,7 @@ import (
 )
 
 func main() {
+
 	runtime.GOMAXPROCS(runtime.NumCPU() * 8)
 
 	dir, err := utils.RetrieveExePath()
