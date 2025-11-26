@@ -18,7 +18,11 @@ go build -o bin/chimney ./cmd/chimney
 ```
 
 
+ server and client are the same program. 
+```for server
+  "mode": "server"
 
-Other packages and source files have not been reorganized beyond this entrypoint move.
 
-If you'd like, I can continue reorganizing packages into `internal/` and add tests.
+  for client:
+  "mode": "client"
+```
