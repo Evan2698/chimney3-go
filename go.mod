@@ -24,4 +24,4 @@ require (
 	golang.org/x/tools v0.38.0 // indirect
 )
 
-replace tun2proxylib => github.com/Evan2698/tun2proxylib v0.0.4
+replace tun2proxylib => github.com/Evan2698/tun2proxylib v0.0.5
