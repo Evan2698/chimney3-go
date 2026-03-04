@@ -32,9 +32,9 @@ func Bytes2Uint16(b []byte) uint16 {
 
 // Uint162Bytes ...
 func Uint162Bytes(b uint16) []byte {
-	var hello bytes.Buffer
-	binary.Write(&hello, binary.BigEndian, b)
-	return hello.Bytes()
+	out := make([]byte, 2)
+	binary.BigEndian.PutUint16(out, b)
+	return out
 }
 
 // Port2Bytes ..
