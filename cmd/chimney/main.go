@@ -15,6 +15,11 @@ import (
 )
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("crash on :", r)
+		}
+	}()
 
 	runtime.GOMAXPROCS(runtime.NumCPU() * 8)
 
