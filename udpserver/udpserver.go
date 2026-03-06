@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	stop int32
+	stop         int32
+	udpurl_const = "0.0.0.0:5353"
 )
 
 func RunUdpServer(udpURl string) {
@@ -30,7 +31,7 @@ func RunUdpServerWithCtx(ctx context.Context, udpURl string) {
 		}
 	}()
 	if udpURl == "" {
-		udpURl = "0.0.0.0:5353"
+		udpURl = udpurl_const
 	}
 
 	udpAddr, err := net.ResolveUDPAddr("udp", udpURl)
