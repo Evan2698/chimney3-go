@@ -62,9 +62,11 @@ func main() {
 
 	select {
 	case <-ctx.Done():
+		close(done)
 		log.Println("shutdown signal received; exiting")
 		os.Exit(0)
 	case err := <-done:
+		close(done)
 		if err != nil {
 			log.Fatalf("service exited with error: %v", err)
 		}
