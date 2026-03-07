@@ -15,6 +15,10 @@ var (
 	udpurl_const = "0.0.0.0:5353"
 )
 
+const (
+	timeout = 20 // seconds
+)
+
 func RunUdpServer(udpURl string) {
 	// Backwards-compatible wrapper that uses Background context.
 	RunUdpServerWithCtx(context.Background(), udpURl)
@@ -58,7 +62,7 @@ func RunUdpServerWithCtx(ctx context.Context, udpURl string) {
 		}
 
 		// use a shorter read deadline so we can respond quickly to context
-		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(timeout * time.Second))
 		n, addr, err := conn.ReadFromUDP(buf)
 		if err != nil {
 			// timeout or closed network connection; loop to re-check ctx/stop
@@ -88,13 +92,13 @@ func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UD
 	}
 	defer remoteConn.Close()
 
-	remoteConn.SetWriteDeadline(time.Now().Add(20 * time.Second))
+	remoteConn.SetWriteDeadline(time.Now().Add(timeout * time.Second))
 	remoteConn.Write(payload)
 
 	buf := buffer.Get()
 	defer buffer.Put(buf)
 
-	remoteConn.SetReadDeadline(time.Now().Add(20 * time.Second))
+	remoteConn.SetReadDeadline(time.Now().Add(timeout * time.Second))
 
 	n, _, err := remoteConn.ReadFromUDP(buf)
 	if err != nil {
@@ -108,7 +112,7 @@ func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UD
 		return
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(20 * time.Second))
+	conn.SetWriteDeadline(time.Now().Add(timeout * time.Second))
 	conn.WriteToUDP(packet, local)
 }
 
