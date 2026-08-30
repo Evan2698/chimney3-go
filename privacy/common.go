@@ -3,8 +3,30 @@ package privacy
 import (
 	"bytes"
 	"chimney3-go/utils"
+	"crypto/rand"
 	"errors"
+	"io"
 )
+
+func cloneBytes(src []byte) []byte {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make([]byte, len(src))
+	copy(out, src)
+	return out
+}
+
+func randomBytes(size int) []byte {
+	if size <= 0 {
+		return nil
+	}
+	buf := make([]byte, size)
+	if _, err := io.ReadFull(rand.Reader, buf); err != nil {
+		return nil
+	}
+	return buf
+}
 
 // helper to encode method code + iv into bytes
 func methodToBytes(code uint16, iv []byte) []byte {

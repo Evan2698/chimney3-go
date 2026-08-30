@@ -43,19 +43,29 @@ func GetSmall() []byte  { return NewApplicationBuffer().GetSmall() }
 func PutSmall(b []byte) { NewApplicationBuffer().PutSmall(b) }
 
 func (b *bufferHolder) GetLarge() []byte {
+	if b == nil || b.largebuffer == nil {
+		return nil
+	}
 	return b.largebuffer.Get()
 }
 
 func (b *bufferHolder) PutLarge(t []byte) {
-
+	if b == nil || b.largebuffer == nil {
+		return
+	}
 	b.largebuffer.Put(t)
 }
 
 func (b *bufferHolder) GetSmall() []byte {
-
+	if b == nil || b.smallbuffer == nil {
+		return nil
+	}
 	return b.smallbuffer.Get()
 }
 
 func (b *bufferHolder) PutSmall(t []byte) {
+	if b == nil || b.smallbuffer == nil {
+		return
+	}
 	b.smallbuffer.Put(t)
 }

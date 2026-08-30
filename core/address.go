@@ -29,6 +29,9 @@ func NewSocks5Address() *Socks5Address {
 }
 
 func (addr *Socks5Address) GetAddress() string {
+	if addr == nil {
+		return ""
+	}
 	if addr.Type == ADDRESSTYPE_DOMAIN {
 		return addr.Host
 	}
@@ -42,14 +45,23 @@ func (addr *Socks5Address) GetAddress() string {
 }
 
 func (addr *Socks5Address) GetPort() uint16 {
+	if addr == nil {
+		return 0
+	}
 	return addr.Port
 }
 
 func (addr *Socks5Address) String() string {
+	if addr == nil {
+		return ""
+	}
 	return net.JoinHostPort(addr.GetAddress(), strconv.Itoa(int(addr.GetPort())))
 }
 
 func (addr *Socks5Address) SetDomainAddress(host string, port uint16) {
+	if addr == nil {
+		return
+	}
 	addr.Host = host
 	addr.Port = port
 	addr.Type = ADDRESSTYPE_DOMAIN
@@ -57,20 +69,37 @@ func (addr *Socks5Address) SetDomainAddress(host string, port uint16) {
 }
 
 func (addr *Socks5Address) SetIPv4Address(ip []byte, port uint16) {
-	addr.IP = ip
+	if addr == nil {
+		return
+	}
+	if ip4 := net.IP(ip).To4(); ip4 != nil {
+		addr.IP = ip4
+	} else {
+		addr.IP = append([]byte(nil), ip...)
+	}
 	addr.Port = port
 	addr.Type = ADDRESSTYPE_IPV4
 	addr.Valid = true
 }
 
 func (addr *Socks5Address) SetIPv6Address(ip []byte, port uint16) {
-	addr.IPV6 = ip
+	if addr == nil {
+		return
+	}
+	if ip16 := net.IP(ip).To16(); ip16 != nil {
+		addr.IPV6 = ip16
+	} else {
+		addr.IPV6 = append([]byte(nil), ip...)
+	}
 	addr.Port = port
 	addr.Type = ADDRESSTYPE_IPV6
 	addr.Valid = true
 }
 
 func (addr *Socks5Address) Bytes() []byte {
+	if addr == nil {
+		return nil
+	}
 	var hello bytes.Buffer
 	hello.WriteByte(addr.Type)
 	if addr.Type == ADDRESSTYPE_DOMAIN {
@@ -87,6 +116,9 @@ func (addr *Socks5Address) Bytes() []byte {
 }
 
 func (addr *Socks5Address) Parse(data []byte) error {
+	if addr == nil {
+		return nil
+	}
 	if len(data) < 7 {
 		addr.Valid = false
 		return nil
@@ -113,18 +145,22 @@ func ParseTargetAddress(host string) (*Socks5Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	np, _ := strconv.Atoi(p)
-	v := &Socks5Address{}
 
+	np, err := strconv.Atoi(p)
+	if err != nil {
+		return nil, err
+	}
+
+	v := &Socks5Address{}
 	ip := net.ParseIP(s)
 	if ip == nil {
 		v.SetDomainAddress(s, uint16(np))
-	} else {
-		if ip.To4() == nil {
-			v.SetIPv6Address(ip, uint16(np))
-		} else {
-			v.SetIPv4Address(ip, uint16(np))
-		}
+		return v, nil
 	}
+	if ip.To4() == nil {
+		v.SetIPv6Address(ip, uint16(np))
+		return v, nil
+	}
+	v.SetIPv4Address(ip, uint16(np))
 	return v, nil
 }

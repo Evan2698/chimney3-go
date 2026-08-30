@@ -9,7 +9,27 @@ type Pool struct {
 	size int
 }
 
+func normalizePoolSize(size int) int {
+	if size < 0 {
+		return 0
+	}
+	return size
+}
+
+func normalizePoolBuffer(buf []byte, size int) []byte {
+	if size <= 0 {
+		return nil
+	}
+	if cap(buf) >= size {
+		return buf[:size]
+	}
+	nb := make([]byte, size)
+	copy(nb, buf)
+	return nb
+}
+
 func NewPool(size int) *Pool {
+	size = normalizePoolSize(size)
 	return &Pool{
 		size: size,
 		pool: &sync.Pool{
@@ -21,25 +41,22 @@ func NewPool(size int) *Pool {
 }
 
 func (p *Pool) Get() []byte {
-	b := p.pool.Get().([]byte)
-	// ensure returned slice has the expected length
-	if cap(b) >= p.size {
-		return b[:p.size]
+	if p == nil {
+		return nil
 	}
-	// fallback: allocate fresh slice of required size
-	nb := make([]byte, p.size)
-	copy(nb, b)
-	return nb
+	if p.size <= 0 {
+		return make([]byte, 0)
+	}
+	b := p.pool.Get().([]byte)
+	return normalizePoolBuffer(b, p.size)
 }
 
 func (p *Pool) Put(b []byte) {
-	// normalize length to capacity for reuse consistency
-	if cap(b) >= p.size {
-		p.pool.Put(b[:p.size])
+	if p == nil {
 		return
 	}
-	// if slice is smaller than pool size, allocate a properly sized one
-	nb := make([]byte, p.size)
-	copy(nb, b)
-	p.pool.Put(nb)
+	if p.size <= 0 {
+		return
+	}
+	p.pool.Put(normalizePoolBuffer(b, p.size))
 }

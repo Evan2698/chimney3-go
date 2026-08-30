@@ -5,9 +5,7 @@ import (
 
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"errors"
-	"io"
 )
 
 type gcm struct {
@@ -20,6 +18,9 @@ const (
 )
 
 func (g *gcm) Compress(src []byte, key []byte, out []byte) (int, error) {
+	if g == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
 	defer utils.Trace("Compress")()
 
 	block, err := aes.NewCipher(key)
@@ -48,6 +49,9 @@ func (g *gcm) Compress(src []byte, key []byte, out []byte) (int, error) {
 }
 
 func (g *gcm) Uncompress(src []byte, key []byte, out []byte) (int, error) {
+	if g == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
 	defer utils.Trace("Uncompress")()
 
 	block, err := aes.NewCipher(key)
@@ -77,32 +81,45 @@ func (g *gcm) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 }
 
 func (g *gcm) MakeSalt() []byte {
-	nonce := make([]byte, 12)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	if g == nil {
 		return nil
 	}
-	return nonce
+	return randomBytes(12)
 }
 
 func (g *gcm) GetIV() []byte {
-	return g.iv
+	if g == nil {
+		return nil
+	}
+	return cloneBytes(g.iv)
 }
 
 func (g *gcm) SetIV(iv []byte) {
-	g.iv = make([]byte, len(iv))
-	copy(g.iv, iv)
+	if g == nil {
+		return
+	}
+	g.iv = cloneBytes(iv)
 }
 
 func (g *gcm) GetSize() int {
+	if g == nil {
+		return 0
+	}
 	return 2 + 1 + len(g.iv)
 }
 
 func (g *gcm) ToBytes() []byte {
+	if g == nil {
+		return nil
+	}
 	return methodToBytes(gcmCode, g.iv)
 }
 
 // From bytes
 func (g *gcm) FromBytes(v []byte) error {
+	if g == nil {
+		return errors.New("privacy: nil receiver")
+	}
 	iv, err := methodFromBytes(v)
 	if err != nil {
 		return err

@@ -1,9 +1,7 @@
 package privacy
 
 import (
-	"crypto/rand"
 	"errors"
-	"io"
 
 	"golang.org/x/crypto/salsa20"
 )
@@ -18,6 +16,10 @@ const (
 )
 
 func (g *salsa_20) Compress(src []byte, key []byte, out []byte) (int, error) {
+	if g == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
+
 	n := len(src)
 	if n == 0 {
 		return 0, errors.New("compressed failed")
@@ -43,37 +45,53 @@ func (g *salsa_20) Compress(src []byte, key []byte, out []byte) (int, error) {
 }
 
 func (g *salsa_20) Uncompress(src []byte, key []byte, out []byte) (int, error) {
+	if g == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
 
 	return g.Compress(src, key, out)
 }
 
 func (g *salsa_20) MakeSalt() []byte {
-	nonce := make([]byte, 24)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	if g == nil {
 		return nil
 	}
-	return nonce
+	return randomBytes(24)
 }
 
 func (g *salsa_20) GetIV() []byte {
-	return g.iv[:]
+	if g == nil {
+		return nil
+	}
+	return cloneBytes(g.iv)
 }
 
 func (g *salsa_20) SetIV(iv []byte) {
-	g.iv = make([]byte, len(iv))
-	copy(g.iv, iv)
+	if g == nil {
+		return
+	}
+	g.iv = cloneBytes(iv)
 }
 
 func (g *salsa_20) GetSize() int {
+	if g == nil {
+		return 0
+	}
 	return 2 + 1 + len(g.iv)
 }
 
 func (g *salsa_20) ToBytes() []byte {
+	if g == nil {
+		return nil
+	}
 	return methodToBytes(salsaCode, g.iv)
 }
 
 // From bytes
 func (g *salsa_20) FromBytes(v []byte) error {
+	if g == nil {
+		return errors.New("privacy: nil receiver")
+	}
 	iv, err := methodFromBytes(v)
 	if err != nil {
 		return err

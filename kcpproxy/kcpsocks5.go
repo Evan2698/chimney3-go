@@ -3,7 +3,7 @@ package kcpproxy
 import (
 	"chimney3-go/core"
 	"chimney3-go/settings"
-	"chimney3-go/udpserver"
+	"chimney3-go/utils"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -110,8 +110,7 @@ func runKCPServerCtx(ctx context.Context, s settings.Settings) error {
 	defer l.Close()
 	log.Printf("KCP server listening on %s", listenAddress)
 
-	udpServerAddr := s.Udplisten
-	go udpserver.RunUdpServer(udpServerAddr)
+	utils.StartUDPServerIfConfigured(s.Udplisten)
 
 	for {
 		sess, err := l.AcceptKCP()
@@ -199,6 +198,9 @@ func handleKCPServerSession(conn *kcp.UDPSession) {
 }
 
 func RunKCPRoutine(s *settings.Settings, isServer bool) error {
+	if s == nil {
+		return fmt.Errorf("settings: nil")
+	}
 	// keep compatibility: run with background context
 	if isServer {
 		return runKCPServerCtx(context.Background(), *s)

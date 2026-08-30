@@ -2,9 +2,7 @@ package privacy
 
 import (
 	"chimney3-go/utils"
-	"crypto/rand"
 	"errors"
-	"io"
 
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -19,6 +17,9 @@ const (
 )
 
 func (p *ploy) Compress(src []byte, key []byte, out []byte) (int, error) {
+	if p == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
 	defer utils.Trace("Compress")()
 	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
@@ -41,6 +42,9 @@ func (p *ploy) Compress(src []byte, key []byte, out []byte) (int, error) {
 }
 
 func (p *ploy) Uncompress(src []byte, key []byte, out []byte) (int, error) {
+	if p == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
 	defer utils.Trace("Uncompress")()
 	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
@@ -63,32 +67,45 @@ func (p *ploy) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 }
 
 func (p *ploy) MakeSalt() []byte {
-	nonce := make([]byte, 24)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	if p == nil {
 		return nil
 	}
-	return nonce
+	return randomBytes(24)
 }
 
 func (p *ploy) GetIV() []byte {
-	return p.iv
+	if p == nil {
+		return nil
+	}
+	return cloneBytes(p.iv)
 }
 
 func (p *ploy) SetIV(iv []byte) {
-	p.iv = make([]byte, len(iv))
-	copy(p.iv, iv)
+	if p == nil {
+		return
+	}
+	p.iv = cloneBytes(iv)
 }
 
 func (p *ploy) GetSize() int {
+	if p == nil {
+		return 0
+	}
 	return 2 + 1 + len(p.iv)
 }
 
 func (p *ploy) ToBytes() []byte {
+	if p == nil {
+		return nil
+	}
 	return methodToBytes(ployCode, p.iv)
 }
 
 // From bytes
 func (p *ploy) FromBytes(v []byte) error {
+	if p == nil {
+		return errors.New("privacy: nil receiver")
+	}
 	iv, err := methodFromBytes(v)
 	if err != nil {
 		return err

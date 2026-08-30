@@ -4,6 +4,7 @@ import (
 	"chimney3-go/privacy"
 	"log"
 	"net"
+	"sync"
 )
 
 type MySSLListener interface {
@@ -15,6 +16,7 @@ type SSLListenerImpl struct {
 	Key           []byte
 	II            privacy.EncryptThings
 	ListenChannel chan MySSLSocket
+	closeOnce     sync.Once
 }
 
 func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener, error) {
@@ -57,6 +59,9 @@ func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener,
 }
 
 func (l *SSLListenerImpl) Accept() (net.Conn, error) {
+	if l == nil || l.ListenChannel == nil {
+		return nil, net.ErrClosed
+	}
 
 	conn, ok := <-l.ListenChannel
 	if !ok {
@@ -67,8 +72,18 @@ func (l *SSLListenerImpl) Accept() (net.Conn, error) {
 }
 
 func (l *SSLListenerImpl) Close() error {
-	close(l.ListenChannel)
-	return l.RawListener.Close()
+	if l == nil {
+		return nil
+	}
+	if l.ListenChannel != nil {
+		l.closeOnce.Do(func() {
+			close(l.ListenChannel)
+		})
+	}
+	if l.RawListener != nil {
+		return l.RawListener.Close()
+	}
+	return nil
 }
 
 func (l *SSLListenerImpl) Addr() net.Addr {

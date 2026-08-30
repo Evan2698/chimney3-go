@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"reflect"
+	"strings"
 )
 
 // EncryptThings for everything protecting
@@ -39,8 +40,13 @@ type EncryptThings interface {
 var globalTable map[string]interface{} = make(map[string]interface{})
 var globalTablei map[uint16]interface{} = make(map[uint16]interface{})
 
+func normalizeMethodName(name string) string {
+	return strings.ToUpper(strings.TrimSpace(name))
+}
+
 func register(name string, mask uint16, i interface{}) {
-	globalTable[name] = i
+	key := normalizeMethodName(name)
+	globalTable[key] = i
 	globalTablei[mask] = i
 }
 
@@ -63,7 +69,7 @@ func FromBytes(buf []byte) (EncryptThings, error) {
 
 // NewMethodWithName create encrypt method for caller with a name
 func NewMethodWithName(name string) EncryptThings {
-	if target, ok := globalTable[name]; ok {
+	if target, ok := globalTable[normalizeMethodName(name)]; ok {
 		return createObject(target)
 	}
 	return nil

@@ -74,3 +74,27 @@ func TestSocket(t *testing.T) {
 	t.Log(string(k[:n]))
 
 }
+
+func TestSSLListenerCloseIsIdempotent(t *testing.T) {
+	l := &SSLListenerImpl{ListenChannel: make(chan MySSLSocket), RawListener: &net.TCPListener{}}
+	if err := l.Close(); err == nil {
+		t.Fatal("Close() should return an error for a nil or unusable underlying listener")
+	}
+	if err := l.Close(); err == nil {
+		t.Fatal("Close() should be safe to call twice")
+	}
+}
+
+func TestSocks5AddressNilReceiverIsSafe(t *testing.T) {
+	var addr *Socks5Address
+	if got := addr.GetAddress(); got != "" {
+		t.Fatalf("nil receiver GetAddress() = %q, want empty string", got)
+	}
+	if got := addr.String(); got != "" {
+		t.Fatalf("nil receiver String() = %q, want empty string", got)
+	}
+	addr.SetIPv4Address([]byte{127, 0, 0, 1}, 8080)
+	if addr != nil {
+		t.Fatal("nil receiver should not be mutated")
+	}
+}

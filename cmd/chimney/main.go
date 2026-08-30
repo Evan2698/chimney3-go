@@ -2,17 +2,69 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 
 	"chimney3-go/all"
 	"chimney3-go/settings"
 	"chimney3-go/utils"
 )
+
+func resolveConfigPath(dir string) string {
+	return filepath.Join(dir, "configs", "setting.json")
+}
+
+type App struct {
+	configPath string
+	cfg        *settings.Settings
+}
+
+func NewApp(configPath string) (*App, error) {
+	if strings.TrimSpace(configPath) == "" {
+		return nil, errors.New("config path is empty")
+	}
+	cfg, err := settings.Parse(configPath)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Normalize()
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return &App{configPath: configPath, cfg: cfg}, nil
+}
+
+func (a *App) Run(ctx context.Context) error {
+	if a == nil {
+		return errors.New("app: nil")
+	}
+	if a.cfg == nil {
+		return errors.New("app config: nil")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return all.ReactorWithContext(ctx, a.cfg)
+}
+
+func waitForShutdown(ctx context.Context, done <-chan error) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err, ok := <-done:
+		if !ok {
+			return nil
+		}
+		return err
+	}
+}
 
 func main() {
 	defer func() {
@@ -28,47 +80,35 @@ func main() {
 		log.Fatalf("failed to determine executable path: %v", err)
 	}
 
-	// Allow user to pass a config path; default to executable dir + /configs/setting.json
 	cfgFlag := flag.String("config", "", "path to JSON config file (default: <exe>/configs/setting.json)")
 	flag.Parse()
 
 	jsonPath := *cfgFlag
 	if jsonPath == "" {
-		jsonPath = dir + "/configs/setting.json"
+		jsonPath = resolveConfigPath(dir)
 	}
 
-	cfg, err := settings.Parse(jsonPath)
+	app, err := NewApp(jsonPath)
 	if err != nil {
 		log.Fatalf("failed to load config %s: %v", jsonPath, err)
 	}
 
-	// validate configuration early
-	if err := cfg.Validate(); err != nil {
-		log.Fatalf("invalid configuration: %v", err)
-	}
-
-	// Setup signal handling for a graceful shutdown notice.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// startup logging
 	log.Printf("starting chimney3-go; config=%s", jsonPath)
 
-	// Run the selected reactor. It's blocking; when it returns we exit.
 	done := make(chan error, 1)
 	go func() {
-		done <- all.Reactor(cfg)
+		done <- app.Run(ctx)
 	}()
 
-	select {
-	case <-ctx.Done():
-		close(done)
-		log.Println("shutdown signal received; exiting")
-		os.Exit(0)
-	case err := <-done:
-		close(done)
-		if err != nil {
-			log.Fatalf("service exited with error: %v", err)
+	err = waitForShutdown(ctx, done)
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			log.Println("shutdown signal received; exiting")
+			os.Exit(0)
 		}
+		log.Fatalf("service exited with error: %v", err)
 	}
 }

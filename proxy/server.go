@@ -4,11 +4,11 @@ import (
 	"chimney3-go/core"
 	"chimney3-go/privacy"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -26,7 +26,16 @@ type proxyServer struct {
 	listener core.MySSLListener
 }
 
+// Server is the canonical proxy server name.
+type Server = proxyServer
+
 func (p *proxyServer) Serve() error {
+	if p == nil {
+		return fmt.Errorf("proxy server: nil")
+	}
+	if p.Password == "" && p.Host == "" && p.Which == "" {
+		return fmt.Errorf("proxy server: empty configuration")
+	}
 	key := privacy.MakeCompressKey(p.Password)
 	II := privacy.NewMethodWithName(p.Which)
 	l, err := core.ListenSSL(p.Host, key, II)
@@ -72,12 +81,8 @@ func handleTunneling(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 	}
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go transfer(dest_conn, client_conn, &wg)
-	go transfer(client_conn, dest_conn, &wg)
-	wg.Wait()
+	waitForRelay := startBidirectionalRelay(dest_conn, client_conn)
+	waitForRelay.Wait()
 }
 
 func handleHTTP(w http.ResponseWriter, req *http.Request) {
@@ -100,6 +105,9 @@ func copyHeader(dst, src http.Header) {
 }
 
 func (p *proxyServer) Close() error {
+	if p == nil {
+		return nil
+	}
 	// Try to gracefully stop the HTTP server and close listener.
 	if p.server != nil {
 		_ = p.server.Close()

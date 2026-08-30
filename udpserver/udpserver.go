@@ -11,13 +11,52 @@ import (
 )
 
 var (
-	stop         int32
-	udpurl_const = "0.0.0.0:5353"
+	stop int32
 )
 
 const (
-	timeout = 20 // seconds
+	defaultUDPURL = "0.0.0.0:5353"
+	timeout       = 20 // seconds
 )
+
+func resetStopFlag() {
+	atomic.StoreInt32(&stop, 0)
+}
+
+func resolveUDPAddress(udpURL string) (*net.UDPAddr, error) {
+	if udpURL == "" {
+		udpURL = defaultUDPURL
+	}
+	return net.ResolveUDPAddr("udp", udpURL)
+}
+
+func serveLoop(ctx context.Context, conn *net.UDPConn) {
+	buf := buffer.Get()
+	defer buffer.Put(buf)
+
+	for {
+		if atomic.LoadInt32(&stop) != 0 {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		conn.SetReadDeadline(time.Now().Add(timeout * time.Second))
+		n, addr, err := conn.ReadFromUDP(buf)
+		if err != nil {
+			continue
+		}
+
+		target, src, payload, err := udppackage.UnpackUDPData(buf[:n])
+		if err != nil {
+			continue
+		}
+		go captureRemote(target, addr, src, payload, conn)
+	}
+}
 
 func RunUdpServer(udpURl string) {
 	// Backwards-compatible wrapper that uses Background context.
@@ -34,11 +73,12 @@ func RunUdpServerWithCtx(ctx context.Context, udpURl string) {
 			log.Println(" fatal error on udp server: ", err)
 		}
 	}()
-	if udpURl == "" {
-		udpURl = udpurl_const
+	if ctx == nil {
+		ctx = context.Background()
 	}
+	resetStopFlag()
 
-	udpAddr, err := net.ResolveUDPAddr("udp", udpURl)
+	udpAddr, err := resolveUDPAddress(udpURl)
 	if err != nil {
 		return
 	}
@@ -48,34 +88,7 @@ func RunUdpServerWithCtx(ctx context.Context, udpURl string) {
 	}
 	defer conn.Close()
 
-	buf := buffer.Get()
-	defer buffer.Put(buf)
-	for {
-		// check for cancellation or stop flag
-		if atomic.LoadInt32(&stop) != 0 {
-			break
-		}
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		// use a shorter read deadline so we can respond quickly to context
-		conn.SetReadDeadline(time.Now().Add(timeout * time.Second))
-		n, addr, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			// timeout or closed network connection; loop to re-check ctx/stop
-			continue
-		}
-		// Handle received data in buf[:n] from addr
-		target, src, payload, err := udppackage.UnpackUDPData(buf[:n])
-		if err != nil {
-			continue
-		}
-		go captureRemote(target, addr, src, payload, conn)
-	}
-
+	serveLoop(ctx, conn)
 }
 
 func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UDPConn) {

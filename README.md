@@ -1,6 +1,6 @@
-# chimney3-go 
+# chimney3-go
 
-This repository was refactored to follow a conventional Go layout. The executable entrypoint now lives in `cmd/chimney`.
+This repository follows a conventional Go layout, with the executable entrypoint in `cmd/chimney`.
 
 Quick start:
 
@@ -10,19 +10,31 @@ Quick start:
 go build -o bin/chimney ./cmd/chimney
 ```
 
-2. Run with the config next to the executable (or pass path in code):
+2. Run with the default config next to the executable, or pass a custom config path:
 
 ```bash
-# run as server
 ./bin/chimney
+./bin/chimney -config /path/to/setting.json
 ```
 
+The same program can run as either a server or a client, selected by the `mode` field in the JSON config:
 
- server and client are the same program. 
-```for server
+```json
+{
   "mode": "server"
-
-
-  for client:
-  "mode": "client"
+}
 ```
+
+```json
+{
+  "mode": "client"
+}
+```
+
+Supported service selectors:
+
+- `which: "socks5"`
+- `which: "proxy"`
+- `which: "kcp"`
+
+The startup layer validates unsupported service names and invalid runtime modes early, and treats nil configuration as an explicit error instead of crashing.

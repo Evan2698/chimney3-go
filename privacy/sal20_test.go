@@ -33,3 +33,24 @@ func TestSalsa(t *testing.T) {
 		panic("Decrypted text does not match original")
 	}
 }
+
+func TestNewMethodWithNameCaseInsensitive(t *testing.T) {
+	if got := NewMethodWithName("  salsa20-i  "); got == nil {
+		t.Fatal("NewMethodWithName should accept case/space variations")
+	}
+	if got := NewMethodWithName("chacha-20"); got == nil {
+		t.Fatal("NewMethodWithName should accept lowercase chacha-20")
+	}
+}
+
+func TestPrivacyMethodsRejectNilReceiver(t *testing.T) {
+	var s *salsa_20
+	if _, err := s.Compress([]byte("hello"), make([]byte, 32), make([]byte, 5)); err == nil {
+		t.Fatal("salsa_20 nil receiver should return an error")
+	}
+
+	var c *cha20
+	if _, err := c.Compress([]byte("hello"), make([]byte, 32), make([]byte, 5)); err == nil {
+		t.Fatal("cha20 nil receiver should return an error")
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"chimney3-go/privacy"
 	"chimney3-go/utils"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -26,12 +27,16 @@ type Socks5ServerSettings struct {
 	Method        string
 }
 
-type Socks5S struct {
+// Server is the canonical internal SOCKS5 server name.
+// Legacy name Socks5S is retained as a compatibility alias.
+type Server struct {
 	Settings *Socks5ServerSettings
 	Exit     bool
 	Protect  mobile.ProtectSocket
 	listener net.Listener
 }
+
+type Socks5S = Server
 
 type socks5session struct {
 	Conn             net.Conn
@@ -41,7 +46,7 @@ type socks5session struct {
 }
 
 func NewSocks5Server(s *Socks5ServerSettings, p mobile.ProtectSocket) Socks5Server {
-	return &Socks5S{
+	return &Server{
 		Settings: s,
 		Exit:     false,
 		Protect:  p,
@@ -53,10 +58,11 @@ func (session *socks5session) Close() {
 	session.AuthenticateUser = false
 }
 
-func (s *Socks5S) Serve() error {
-
+func (s *Server) Serve() error {
+	if s == nil || s.Settings == nil {
+		return fmt.Errorf("settings: nil")
+	}
 	host := s.Settings.ListenAddress
-	// to TCP
 	log.Println("server run on " + host + " with tcp protocol.")
 	l, err := net.Listen("tcp", host)
 	if err != nil {
@@ -65,21 +71,32 @@ func (s *Socks5S) Serve() error {
 	}
 	s.listener = l
 	defer func() {
-		l.Close()
+		utils.CloseAll(l)
 	}()
+	return s.acceptLoop(l)
+}
 
+func (s *Server) acceptLoop(l net.Listener) error {
+	if s == nil || s.Settings == nil {
+		return fmt.Errorf("settings: nil")
+	}
 	i := privacy.NewMethodWithName(s.Settings.Method)
 	key := privacy.MakeCompressKey(s.Settings.PassWord)
 
 	for {
 		con, err := l.Accept()
 		if err != nil {
+			if s.Exit {
+				log.Println("EXIT TCP")
+				return nil
+			}
 			log.Println(" accept failed ", err)
-			break
+			return err
 		}
 		if s.Exit {
 			log.Println("EXIT TCP")
-			break
+			utils.CloseQuietly(con)
+			return nil
 		}
 		session := &socks5session{
 			Conn:             con,
@@ -87,40 +104,35 @@ func (s *Socks5S) Serve() error {
 			I:                i,
 			Key:              key,
 		}
-
 		go s.serveOn(session)
 	}
-
-	return err
 }
 
-func (s *Socks5S) Stop() {
-	s.Exit = true
-	if s.listener != nil {
-		_ = s.listener.Close()
+func (s *Server) Stop() {
+	if s == nil {
+		return
 	}
+	s.Exit = true
+	utils.StopQuietly(s)
+	utils.CloseAll(s.listener)
 }
 
-func (s *Socks5S) serveOn(session *socks5session) {
+func (s *Server) serveOn(session *socks5session) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(" fatal error on udp server: ", err)
 		}
 	}()
-	// Implement the serveOn method here
 	defer session.Close()
-	// Add your handling code here
-
 	defer utils.Trace("serveOn")()
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(" fatal error on proxyWrite: ", err)
 		}
 	}()
-	SetSocketTimeout(session.Conn, MAX_TIME_OUT)
 
-	err := s.echoHello(session)
-	if err != nil {
+	SetSocketTimeout(session.Conn, MAX_TIME_OUT)
+	if err := s.echoHello(session); err != nil {
 		log.Println("echo error", err)
 		return
 	}
@@ -130,17 +142,18 @@ func (s *Socks5S) serveOn(session *socks5session) {
 		log.Println("create dst socket faile", err)
 		return
 	}
-
-	defer func() {
-		dstConn.Close()
-	}()
+	defer utils.CloseQuietly(dstConn)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go copyConnect2Connect(session.Conn, dstConn, &wg)
 	go copyConnect2Connect(dstConn, session.Conn, &wg)
 	wg.Wait()
+}
 
+func writeReply(conn net.Conn, reply []byte) error {
+	_, err := conn.Write(reply)
+	return err
 }
 
 func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup) {
@@ -174,7 +187,7 @@ func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup) {
 
 }
 
-func (s *Socks5S) echoHello(session *socks5session) error {
+func (s *Server) echoHello(session *socks5session) error {
 	con := session.Conn
 	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
 	defer func() {
@@ -228,7 +241,7 @@ func (s *Socks5S) echoHello(session *socks5session) error {
 	return errors.New("not implement for other method")
 }
 
-func (s *Socks5S) authUser(session *socks5session) error {
+func (s *Server) authUser(session *socks5session) error {
 
 	con := session.Conn
 	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
@@ -278,7 +291,7 @@ func (s *Socks5S) authUser(session *socks5session) error {
 	return errors.New("other error")
 }
 
-func (s *Socks5S) doCommandConnect(session *socks5session) (remote net.Conn, err error) {
+func (s *Server) doCommandConnect(session *socks5session) (remote net.Conn, err error) {
 	conn := session.Conn
 	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
 	defer func() {
@@ -396,7 +409,10 @@ func (s *Socks5S) doCommandConnect(session *socks5session) (remote net.Conn, err
 
 }
 
-func (s *Socks5S) buildTcpSocketWithSocks5Address(addr *core.Socks5Address) (conn core.SocksStream, err error) {
+func (s *Server) buildTcpSocketWithSocks5Address(addr *core.Socks5Address) (conn core.SocksStream, err error) {
+	if s == nil || s.Settings == nil {
+		return nil, fmt.Errorf("settings: nil")
+	}
 	cc := &ClientSettings{
 		ProxyAddress: s.Settings.ProxyAddress,
 		User:         s.Settings.User,

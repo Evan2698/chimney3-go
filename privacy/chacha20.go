@@ -2,9 +2,7 @@ package privacy
 
 import (
 	"chimney3-go/privacy/chacha20"
-	"crypto/rand"
 	"errors"
-	"io"
 )
 
 type cha20 struct {
@@ -17,6 +15,9 @@ const (
 )
 
 func (chacha *cha20) Compress(src []byte, key []byte, out []byte) (int, error) {
+	if chacha == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
 
 	if len(key) != 32 || len(src) == 0 {
 		return 0, errors.New("parameter is invalid")
@@ -34,36 +35,52 @@ func (chacha *cha20) Compress(src []byte, key []byte, out []byte) (int, error) {
 }
 
 func (chacha *cha20) Uncompress(src []byte, key []byte, out []byte) (int, error) {
+	if chacha == nil {
+		return 0, errors.New("privacy: nil receiver")
+	}
 	return chacha.Compress(src, key, out)
 }
 
 func (chacha *cha20) MakeSalt() []byte {
-	nonce := make([]byte, 24)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	if chacha == nil {
 		return nil
 	}
-	return nonce
+	return randomBytes(24)
 }
 
 func (chacha *cha20) GetIV() []byte {
-	return chacha.iv
+	if chacha == nil {
+		return nil
+	}
+	return cloneBytes(chacha.iv)
 }
 
 func (chacha *cha20) SetIV(iv []byte) {
-	chacha.iv = make([]byte, len(iv))
-	copy(chacha.iv, iv)
+	if chacha == nil {
+		return
+	}
+	chacha.iv = cloneBytes(iv)
 }
 
 func (chacha *cha20) GetSize() int {
+	if chacha == nil {
+		return 0
+	}
 	return 2 + 1 + len(chacha.iv)
 }
 
 func (chacha *cha20) ToBytes() []byte {
+	if chacha == nil {
+		return nil
+	}
 	return methodToBytes(chacha20Code, chacha.iv)
 }
 
 // From bytes
 func (chacha *cha20) FromBytes(v []byte) error {
+	if chacha == nil {
+		return errors.New("privacy: nil receiver")
+	}
 	iv, err := methodFromBytes(v)
 	if err != nil {
 		return err

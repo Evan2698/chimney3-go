@@ -23,7 +23,11 @@ type Socks5 struct {
 	Settings *ClientSettings
 	I        privacy.EncryptThings
 	Protect  mobile.ProtectSocket
+	conn     net.Conn
 }
+
+// Client is the canonical client-side name for the SOCKS5 dialer.
+type Client = Socks5
 
 type Socks5Client interface {
 	Dial(addr *core.Socks5Address) (core.SocksStream, error)
@@ -39,8 +43,12 @@ func NewSocks5Client(c *ClientSettings, f mobile.ProtectSocket) Socks5Client {
 }
 
 func (c *Socks5) Dial(addr *core.Socks5Address) (core.SocksStream, error) {
-
-	// 1. create socket
+	if c == nil {
+		return nil, errors.New("socks5: nil receiver")
+	}
+	if c.Settings == nil {
+		return nil, errors.New("socks5 settings: nil")
+	}
 	success := false
 	rawSocket, err := c.buildClientSocket()
 	if err != nil {
@@ -53,15 +61,8 @@ func (c *Socks5) Dial(addr *core.Socks5Address) (core.SocksStream, error) {
 		}
 	}()
 
-	// 2. say hello
-	err = c.sayHello(rawSocket)
-	if err != nil {
-		return nil, err
-	}
-
-	// 3. do authetication
 	key := privacy.MakeCompressKey(c.Settings.PassWord)
-	if err = c.authenticateUser(rawSocket, key); err != nil {
+	if err = c.runHandshake(rawSocket, key); err != nil {
 		log.Println("authenticate failed! ", err)
 		return nil, err
 	}
@@ -73,12 +74,24 @@ func (c *Socks5) Dial(addr *core.Socks5Address) (core.SocksStream, error) {
 	}
 
 	success = true
-
 	return core.NewSocks5Socket(rawSocket, c.I, key, addr, dstAddr), nil
 }
 
-func (c *Socks5) Close() {
+func (c *Socks5) runHandshake(con io.ReadWriteCloser, key []byte) error {
+	if err := c.sayHello(con); err != nil {
+		return err
+	}
+	return c.authenticateUser(con, key)
+}
 
+func (c *Socks5) Close() {
+	if c == nil {
+		return
+	}
+	if c.conn != nil {
+		_ = c.conn.Close()
+		c.conn = nil
+	}
 }
 
 func (c *Socks5) sayHello(writer io.ReadWriteCloser) error {
@@ -229,6 +242,16 @@ func (c *Socks5) connectTarget(con net.Conn, addr *core.Socks5Address, key []byt
 }
 
 func (c *Socks5) buildClientSocket() (con net.Conn, err error) {
+	if c == nil {
+		return nil, errors.New("socks5: nil receiver")
+	}
+	if c.Settings == nil {
+		return nil, errors.New("socks5 settings: nil")
+	}
 	host := c.Settings.ProxyAddress
-	return socketbase.TcpDailNetString(host, c.Protect)
+	con, err = socketbase.TcpDailNetString(host, c.Protect)
+	if err == nil {
+		c.conn = con
+	}
+	return con, err
 }
