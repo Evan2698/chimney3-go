@@ -102,12 +102,13 @@ func (addr *Socks5Address) Bytes() []byte {
 	}
 	var hello bytes.Buffer
 	hello.WriteByte(addr.Type)
-	if addr.Type == ADDRESSTYPE_DOMAIN {
+	switch addr.Type {
+	case ADDRESSTYPE_DOMAIN:
 		hello.WriteByte(byte(len(addr.Host)))
 		hello.WriteString(addr.Host)
-	} else if addr.Type == ADDRESSTYPE_IPV4 {
+	case ADDRESSTYPE_IPV4:
 		hello.Write(addr.IP)
-	} else if addr.Type == ADDRESSTYPE_IPV6 {
+	case ADDRESSTYPE_IPV6:
 		hello.Write(addr.IPV6)
 	}
 	hello.WriteByte(byte(addr.Port >> 8))
