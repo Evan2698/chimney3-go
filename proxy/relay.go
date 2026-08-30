@@ -23,9 +23,9 @@ func relay(src, dst net.Conn, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	buf := mem.NewApplicationBuffer().GetLarge()
+	buf := mem.GetLarge()
 	defer func() {
-		mem.NewApplicationBuffer().PutLarge(buf)
+		mem.PutLarge(buf)
 	}()
 	for {
 		n, err := src.Read(buf)

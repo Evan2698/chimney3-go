@@ -44,9 +44,9 @@ func (sock *Socks5Socket) GetSourceSocks5Address() *Socks5Address {
 
 func (sock *Socks5Socket) Read(b []byte) (int, error) {
 
-	tmpBuffer := mem.NewApplicationBuffer().GetLarge()
+	tmpBuffer := mem.GetLarge()
 	defer func() {
-		mem.NewApplicationBuffer().PutLarge(tmpBuffer)
+		mem.PutLarge(tmpBuffer)
 	}()
 
 	buffer, err := ReadXBytes(4, tmpBuffer[:4], sock.RawConnection)
@@ -72,9 +72,9 @@ func (sock *Socks5Socket) Read(b []byte) (int, error) {
 	if rLen > mem.LARGE_BUFFER_SIZE {
 		return 0, errors.New("out of out buffer")
 	}
-	outBuffer := mem.NewApplicationBuffer().GetLarge()
+	outBuffer := mem.GetLarge()
 	defer func() {
-		mem.NewApplicationBuffer().PutLarge(outBuffer)
+		mem.PutLarge(outBuffer)
 	}()
 
 	n, err := sock.I.Uncompress(buffer, sock.Key, outBuffer)
@@ -98,9 +98,9 @@ func (sock *Socks5Socket) Write(b []byte) (int, error) {
 		return 0, errors.New("input buffer size is zero or buffer is too large")
 	}
 
-	outBuffer := mem.NewApplicationBuffer().GetLarge()
+	outBuffer := mem.GetLarge()
 	defer func() {
-		mem.NewApplicationBuffer().PutLarge(outBuffer)
+		mem.PutLarge(outBuffer)
 	}()
 
 	n, err := sock.I.Compress(b, sock.Key, outBuffer)

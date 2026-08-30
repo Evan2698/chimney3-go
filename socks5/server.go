@@ -163,9 +163,9 @@ func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup) {
 		}
 	}()
 
-	tmpBuffer := mem.NewApplicationBuffer().GetLarge()
+	tmpBuffer := mem.GetLarge()
 	defer func() {
-		mem.NewApplicationBuffer().PutLarge(tmpBuffer)
+		mem.PutLarge(tmpBuffer)
 	}()
 
 	offset := mem.LARGE_BUFFER_SIZE - BUFFER_OFFSET
