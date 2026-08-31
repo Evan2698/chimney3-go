@@ -105,9 +105,9 @@ func (c *Socks5) sayHello(writer io.ReadWriteCloser) error {
 
 func (c *Socks5) authenticateUser(con io.ReadWriteCloser, key []byte) error {
 
-	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpBuffer)
+		mem.PutSmall(tmpBuffer)
 	}()
 
 	n, err := con.Read(tmpBuffer)
@@ -136,9 +136,9 @@ func (c *Socks5) authenticateUser(con io.ReadWriteCloser, key []byte) error {
 
 	usrsha1 := privacy.BuildMacHash(key, c.Settings.User)
 
-	tmpOutBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpOutBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpOutBuffer)
+		mem.PutSmall(tmpOutBuffer)
 	}()
 
 	n, err = c.I.Compress(usrsha1, key, tmpOutBuffer)
@@ -189,9 +189,9 @@ func (c *Socks5) connectTarget(con net.Conn, addr *core.Socks5Address, key []byt
 
 	var op bytes.Buffer
 	op.Write([]byte{socks5Version, socks5CMDConnect, 0x00, addr.Type})
-	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpBuffer)
+		mem.PutSmall(tmpBuffer)
 	}()
 	n, err := c.I.Compress(addr.Bytes(), key, tmpBuffer)
 	if err != nil {
@@ -219,9 +219,9 @@ func (c *Socks5) connectTarget(con net.Conn, addr *core.Socks5Address, key []byt
 
 	response := tmpBuffer[5:n]
 
-	tmpOutBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpOutBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpOutBuffer)
+		mem.PutSmall(tmpOutBuffer)
 	}()
 	n, err = c.I.Uncompress(response, key, tmpOutBuffer)
 	if err != nil || n < 1 {

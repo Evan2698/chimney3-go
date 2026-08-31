@@ -26,7 +26,7 @@ const (
 	SMALL_BUFFER_SIZE = 512
 )
 
-func NewApplicationBuffer() Buffer {
+func newApplicationBuffer() Buffer {
 	once.Do(func() {
 		instance = &bufferHolder{
 			smallbuffer: NewPool(SMALL_BUFFER_SIZE),
@@ -37,10 +37,10 @@ func NewApplicationBuffer() Buffer {
 }
 
 // Convenience package-level helpers so callers don't need to call NewApplicationBuffer().
-func GetLarge() []byte  { return NewApplicationBuffer().GetLarge() }
-func PutLarge(b []byte) { NewApplicationBuffer().PutLarge(b) }
-func GetSmall() []byte  { return NewApplicationBuffer().GetSmall() }
-func PutSmall(b []byte) { NewApplicationBuffer().PutSmall(b) }
+func GetLarge() []byte  { return newApplicationBuffer().GetLarge() }
+func PutLarge(b []byte) { newApplicationBuffer().PutLarge(b) }
+func GetSmall() []byte  { return newApplicationBuffer().GetSmall() }
+func PutSmall(b []byte) { newApplicationBuffer().PutSmall(b) }
 
 func (b *bufferHolder) GetLarge() []byte {
 	if b == nil || b.largebuffer == nil {

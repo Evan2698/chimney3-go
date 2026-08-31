@@ -45,9 +45,9 @@ func (sock *SSLSocketImpl) IsOk() bool {
 
 func (sock *SSLSocketImpl) HandshakeClient() error {
 
-	buffer := mem.NewApplicationBuffer().GetSmall()
+	buffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(buffer)
+		mem.PutSmall(buffer)
 	}()
 
 	// Step 1: say hello
@@ -91,9 +91,9 @@ func (sock *SSLSocketImpl) HandshakeClient() error {
 }
 
 func (sock *SSLSocketImpl) HandshakeServer() error {
-	buffer := mem.NewApplicationBuffer().GetSmall()
+	buffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(buffer)
+		mem.PutSmall(buffer)
 	}()
 
 	n, err := sock.RawConnection.Read(buffer[:])

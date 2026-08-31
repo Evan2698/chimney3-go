@@ -189,9 +189,9 @@ func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup) {
 
 func (s *Server) echoHello(session *socks5session) error {
 	con := session.Conn
-	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpBuffer)
+		mem.PutSmall(tmpBuffer)
 	}()
 	n, err := con.Read(tmpBuffer)
 	if err != nil {
@@ -244,9 +244,9 @@ func (s *Server) echoHello(session *socks5session) error {
 func (s *Server) authUser(session *socks5session) error {
 
 	con := session.Conn
-	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpBuffer)
+		mem.PutSmall(tmpBuffer)
 	}()
 
 	n, err := con.Read(tmpBuffer)
@@ -270,9 +270,9 @@ func (s *Server) authUser(session *socks5session) error {
 
 	sha1 := privacy.BuildMacHash(session.Key, userName)
 
-	tmpOutBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpOutBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpOutBuffer)
+		mem.PutSmall(tmpOutBuffer)
 	}()
 	counter, err := session.I.Uncompress(pass, session.Key, tmpOutBuffer)
 	if err != nil {
@@ -293,9 +293,9 @@ func (s *Server) authUser(session *socks5session) error {
 
 func (s *Server) doCommandConnect(session *socks5session) (remote net.Conn, err error) {
 	conn := session.Conn
-	tmpBuffer := mem.NewApplicationBuffer().GetSmall()
+	tmpBuffer := mem.GetSmall()
 	defer func() {
-		mem.NewApplicationBuffer().PutSmall(tmpBuffer)
+		mem.PutSmall(tmpBuffer)
 	}()
 
 	n, err := conn.Read(tmpBuffer)
@@ -320,9 +320,9 @@ func (s *Server) doCommandConnect(session *socks5session) (remote net.Conn, err 
 	cmd := tmpBuffer[:n]
 
 	if session.AuthenticateUser {
-		tmpOutBuffer := mem.NewApplicationBuffer().GetSmall()
+		tmpOutBuffer := mem.GetSmall()
 		defer func() {
-			mem.NewApplicationBuffer().PutSmall(tmpOutBuffer)
+			mem.PutSmall(tmpOutBuffer)
 		}()
 
 		text := cmd[5:]
