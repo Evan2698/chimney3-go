@@ -47,9 +47,6 @@ func RunServer(s *settings.Settings, isServer bool) error {
 	if s == nil {
 		return fmt.Errorf("settings: nil")
 	}
-	if err := validateSocks5Method(s.Method); err != nil {
-		return err
-	}
 	if isServer {
 		return startSocks5Server(s)
 	}
