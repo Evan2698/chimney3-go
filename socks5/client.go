@@ -36,9 +36,10 @@ type Socks5Client interface {
 	Close()
 }
 
-func NewSocks5Client(c *ClientSettings, f mobile.ProtectSocket) Socks5Client {
+func NewSocks5Client(c *ClientSettings, f mobile.ProtectSocket, ctx context.Context) Socks5Client {
 
 	return &Socks5{
+		Context:  ctx,
 		Settings: c,
 		Protect:  f,
 	}

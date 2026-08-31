@@ -6,11 +6,13 @@ import (
 	"chimney3-go/mem"
 	"chimney3-go/privacy"
 	"chimney3-go/utils"
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"net"
 	"sync"
+	"sync/atomic"
 	"tun2proxylib/mobile"
 )
 
@@ -30,8 +32,9 @@ type Socks5ServerSettings struct {
 // Server is the canonical internal SOCKS5 server name.
 // Legacy name Socks5S is retained as a compatibility alias.
 type Server struct {
+	Context  context.Context
 	Settings *Socks5ServerSettings
-	Exit     bool
+	Exit     int32
 	Protect  mobile.ProtectSocket
 	listener net.Listener
 }
@@ -46,11 +49,15 @@ type socks5session struct {
 }
 
 func NewSocks5Server(s *Socks5ServerSettings, p mobile.ProtectSocket) Socks5Server {
-	return &Server{
+	var sc = &Server{
 		Settings: s,
-		Exit:     false,
+		Exit:     0,
 		Protect:  p,
 	}
+
+	atomic.StoreInt32(&sc.Exit, 0)
+
+	return sc
 }
 
 func (session *socks5session) Close() {
@@ -86,14 +93,14 @@ func (s *Server) acceptLoop(l net.Listener) error {
 	for {
 		con, err := l.Accept()
 		if err != nil {
-			if s.Exit {
+			if atomic.LoadInt32(&s.Exit) != 0 {
 				log.Println("EXIT TCP")
 				return nil
 			}
 			log.Println(" accept failed ", err)
 			return err
 		}
-		if s.Exit {
+		if atomic.LoadInt32(&s.Exit) != 0 {
 			log.Println("EXIT TCP")
 			utils.CloseQuietly(con)
 			return nil
@@ -112,7 +119,7 @@ func (s *Server) Stop() {
 	if s == nil {
 		return
 	}
-	s.Exit = true
+	atomic.StoreInt32(&s.Exit, 1)
 	utils.StopQuietly(s)
 	utils.CloseAll(s.listener)
 }
@@ -418,7 +425,8 @@ func (s *Server) buildTcpSocketWithSocks5Address(addr *core.Socks5Address) (conn
 		User:         s.Settings.User,
 		PassWord:     s.Settings.PassWord,
 	}
-	client := NewSocks5Client(cc, s.Protect)
+	ctx := context.Background()
+	client := NewSocks5Client(cc, s.Protect, ctx)
 	conn, err = client.Dial(addr)
 	return conn, err
 }
