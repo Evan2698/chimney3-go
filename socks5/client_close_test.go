@@ -10,7 +10,7 @@ func TestSocks5CloseClosesUnderlyingConn(t *testing.T) {
 	clientConn, serverConn := net.Pipe()
 	defer serverConn.Close()
 
-	s := &Socks5{conn: clientConn}
+	s := &Socks5{Conn: clientConn}
 	s.Close()
 
 	buf := make([]byte, 1)

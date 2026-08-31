@@ -5,6 +5,7 @@ import (
 	"chimney3-go/core"
 	"chimney3-go/mem"
 	"chimney3-go/privacy"
+	"context"
 	"errors"
 	"io"
 	"log"
@@ -20,10 +21,11 @@ type ClientSettings struct {
 }
 
 type Socks5 struct {
+	Context  context.Context
 	Settings *ClientSettings
 	I        privacy.EncryptThings
 	Protect  mobile.ProtectSocket
-	conn     net.Conn
+	Conn     net.Conn
 }
 
 // Client is the canonical client-side name for the SOCKS5 dialer.
@@ -88,9 +90,9 @@ func (c *Socks5) Close() {
 	if c == nil {
 		return
 	}
-	if c.conn != nil {
-		_ = c.conn.Close()
-		c.conn = nil
+	if c.Conn != nil {
+		_ = c.Conn.Close()
+		c.Conn = nil
 	}
 }
 
@@ -251,7 +253,7 @@ func (c *Socks5) buildClientSocket() (con net.Conn, err error) {
 	host := c.Settings.ProxyAddress
 	con, err = socketbase.TcpDailNetString(host, c.Protect)
 	if err == nil {
-		c.conn = con
+		c.Conn = con
 	}
 	return con, err
 }
