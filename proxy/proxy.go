@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	servercontext "chimney3-go/sesrvercontext"
 	"chimney3-go/settings"
 	"chimney3-go/utils"
 	"fmt"
@@ -9,10 +10,8 @@ import (
 // RunServer starts the proxy subsystem. It returns an error when startup or
 // the running subsystem encounters a terminal error. Callers should decide
 // whether to log/fatal or attempt recovery.
-func RunServer(s *settings.Settings, isServer bool) error {
-	if s == nil {
-		return fmt.Errorf("settings: nil")
-	}
+func RunServer(s *settings.Settings, ctx servercontext.ServerContext) error {
+	isServer := utils.IsServerMode(s.Mode)
 	if isServer {
 		return runserver(s)
 	}

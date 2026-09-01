@@ -2,6 +2,7 @@ package kcpproxy
 
 import (
 	"chimney3-go/core"
+	servercontext "chimney3-go/sesrvercontext"
 	"chimney3-go/settings"
 	"chimney3-go/utils"
 	"context"
@@ -197,13 +198,10 @@ func handleKCPServerSession(conn *kcp.UDPSession) {
 	wg.Wait()
 }
 
-func RunKCPRoutine(s *settings.Settings, isServer bool) error {
-	if s == nil {
-		return fmt.Errorf("settings: nil")
-	}
-	// keep compatibility: run with background context
+func RunKCPRoutine(s *settings.Settings, ctx servercontext.ServerContext) error {
+	isServer := utils.IsServerMode(s.Mode)
 	if isServer {
-		return runKCPServerCtx(context.Background(), *s)
+		return runKCPServerCtx(ctx, *s)
 	}
-	return runKCPClientCtx(context.Background(), *s)
+	return runKCPClientCtx(ctx, *s)
 }

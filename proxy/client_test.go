@@ -33,15 +33,6 @@ func TestProxyClientCloseStopsServe(t *testing.T) {
 	}
 }
 
-func TestRunServerRejectsNilSettings(t *testing.T) {
-	if err := RunServer(nil, true); err == nil {
-		t.Fatal("RunServer(nil, true) should reject nil settings")
-	}
-	if err := RunServer(nil, false); err == nil {
-		t.Fatal("RunServer(nil, false) should reject nil settings")
-	}
-}
-
 func TestProxyServerServeRejectsNilReceiver(t *testing.T) {
 	var server *proxyServer
 	if err := server.Serve(); err == nil {

@@ -2,24 +2,12 @@ package socks5
 
 import (
 	"chimney3-go/core"
-	"chimney3-go/privacy"
+	servercontext "chimney3-go/sesrvercontext"
 	"chimney3-go/settings"
 	"chimney3-go/utils"
 	"fmt"
 	"log"
-	"strings"
 )
-
-func validateSocks5Method(method string) error {
-	trimmed := strings.TrimSpace(method)
-	if trimmed == "" {
-		return nil
-	}
-	if privacy.NewMethodWithName(trimmed) == nil {
-		return fmt.Errorf("method: unsupported method %q", method)
-	}
-	return nil
-}
 
 func buildSocks5Settings(cfg *settings.Settings) *Socks5ServerSettings {
 	if cfg == nil {
@@ -43,10 +31,8 @@ func startHTTPBridge(httpAddr, socks5Addr string) {
 }
 
 // RunServer 启动 SOCKS5 服务器或客户端，依据 isServer 参数。
-func RunServer(s *settings.Settings, isServer bool) error {
-	if s == nil {
-		return fmt.Errorf("settings: nil")
-	}
+func RunServer(s *settings.Settings, ctx servercontext.ServerContext) error {
+	isServer := utils.IsServerMode(s.Mode)
 	if isServer {
 		return startSocks5Server(s)
 	}
@@ -57,9 +43,6 @@ func RunServer(s *settings.Settings, isServer bool) error {
 func startSocks5Server(s *settings.Settings) error {
 	if s == nil {
 		return fmt.Errorf("settings: nil")
-	}
-	if err := validateSocks5Method(s.Method); err != nil {
-		return err
 	}
 	ss := buildSocks5Settings(s)
 	utils.StartUDPServerIfConfigured(s.Udplisten)
@@ -72,9 +55,6 @@ func startSocks5Server(s *settings.Settings) error {
 func startSocks5Client(s *settings.Settings) error {
 	if s == nil {
 		return fmt.Errorf("settings: nil")
-	}
-	if err := validateSocks5Method(s.Method); err != nil {
-		return err
 	}
 	ss := buildSocks5Settings(s)
 	log.Println("SOCKS5 client starting...")

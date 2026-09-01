@@ -42,15 +42,7 @@ func NewApp(configPath string) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	if a == nil {
-		return errors.New("app: nil")
-	}
-	if a.cfg == nil {
-		return errors.New("app config: nil")
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
+
 	return all.ReactorWithContext(ctx, a.cfg)
 }
 
