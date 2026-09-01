@@ -1,7 +1,9 @@
 package vpncore
 
 import (
+	servercontext "chimney3-go/sesrvercontext"
 	"chimney3-go/socks5"
+	"context"
 	"fmt"
 	"log"
 	"tun2proxylib/gvisorcore"
@@ -21,7 +23,8 @@ func buildVpnClient(localListenUrl, proxyUrl string, user, pass string, p mobile
 		Method:        "socks5",
 	}
 	log.Println("SOCKS5 client starting...")
-	server := socks5.NewSocks5Server(ss, p)
+	server := socks5.NewSocks5Server(ss, p,
+		servercontext.NewServerContext(context.Background()))
 
 	socks5Url := fmt.Sprintf("socks5://%s", localListenUrl)
 	log.Printf("Starting HTTP to SOCKS5 proxy on %s forwarding to %s", localListenUrl, socks5Url)

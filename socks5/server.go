@@ -47,10 +47,11 @@ type socks5session struct {
 	I                privacy.EncryptThings
 }
 
-func NewSocks5Server(s *Socks5ServerSettings, p mobile.ProtectSocket) Socks5Server {
+func NewSocks5Server(s *Socks5ServerSettings, p mobile.ProtectSocket, ctx servercontext.ServerContext) Socks5Server {
 	var sc = &Server{
 		Settings: s,
 		Protect:  p,
+		Context:  ctx,
 	}
 
 	return sc
@@ -112,9 +113,6 @@ func (s *Server) acceptLoop(l net.Listener) error {
 }
 
 func (s *Server) Stop() {
-	if s == nil {
-		return
-	}
 	s.Context.Interrupted()
 	utils.StopQuietly(s)
 	utils.CloseAll(s.listener)

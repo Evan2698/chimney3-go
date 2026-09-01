@@ -34,31 +34,31 @@ func startHTTPBridge(httpAddr, socks5Addr string) {
 func RunServer(s *settings.Settings, ctx servercontext.ServerContext) error {
 	isServer := utils.IsServerMode(s.Mode)
 	if isServer {
-		return startSocks5Server(s)
+		return startSocks5Server(s, ctx)
 	}
-	return startSocks5Client(s)
+	return startSocks5Client(s, ctx)
 }
 
 // startSocks5Server 构建并启动 SOCKS5 服务器。
-func startSocks5Server(s *settings.Settings) error {
+func startSocks5Server(s *settings.Settings, ctx servercontext.ServerContext) error {
 	if s == nil {
 		return fmt.Errorf("settings: nil")
 	}
 	ss := buildSocks5Settings(s)
 	utils.StartUDPServerIfConfigured(s.Udplisten)
 	log.Println("SOCKS5 server starting...")
-	server := NewSocks5Server(ss, nil)
+	server := NewSocks5Server(ss, nil, ctx)
 	return server.Serve()
 }
 
 // startSocks5Client 构建并启动 SOCKS5 客户端。
-func startSocks5Client(s *settings.Settings) error {
+func startSocks5Client(s *settings.Settings, ctx servercontext.ServerContext) error {
 	if s == nil {
 		return fmt.Errorf("settings: nil")
 	}
 	ss := buildSocks5Settings(s)
 	log.Println("SOCKS5 client starting...")
-	server := NewSocks5Server(ss, nil)
+	server := NewSocks5Server(ss, nil, ctx)
 
 	httpAddr := s.Httpurl
 	socks5URL := fmt.Sprintf("socks5://%s", s.Listen)
