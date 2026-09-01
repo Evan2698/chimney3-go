@@ -114,7 +114,6 @@ func (s *Server) acceptLoop(l net.Listener) error {
 
 func (s *Server) Stop() {
 	s.Context.Interrupted()
-	utils.StopQuietly(s)
 	utils.CloseAll(s.listener)
 }
 
