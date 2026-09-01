@@ -5,7 +5,7 @@ import (
 	"chimney3-go/core"
 	"chimney3-go/mem"
 	"chimney3-go/privacy"
-	"context"
+	servercontext "chimney3-go/sesrvercontext"
 	"errors"
 	"io"
 	"log"
@@ -21,7 +21,7 @@ type ClientSettings struct {
 }
 
 type Socks5 struct {
-	Context  context.Context
+	Context  servercontext.ServerContext
 	Settings *ClientSettings
 	I        privacy.EncryptThings
 	Protect  mobile.ProtectSocket
@@ -36,7 +36,7 @@ type Socks5Client interface {
 	Close()
 }
 
-func NewSocks5Client(c *ClientSettings, f mobile.ProtectSocket, ctx context.Context) Socks5Client {
+func NewSocks5Client(c *ClientSettings, f mobile.ProtectSocket, ctx servercontext.ServerContext) Socks5Client {
 
 	return &Socks5{
 		Context:  ctx,
