@@ -65,7 +65,7 @@ func main() {
 		}
 	}()
 
-	runtime.GOMAXPROCS(runtime.NumCPU() * 8)
+	runtime.GOMAXPROCS(-1)
 
 	dir, err := utils.RetrieveExePath()
 	if err != nil {
