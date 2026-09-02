@@ -168,7 +168,7 @@ func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup) {
 		mem.PutLarge(tmpBuffer)
 	}()
 
-	offset := mem.LARGE_BUFFER_SIZE - BUFFER_OFFSET
+	offset := mem.GetLargeSize() - BUFFER_OFFSET
 	for {
 		n, err := src.Read(tmpBuffer[:offset])
 		if err != nil {
@@ -219,7 +219,11 @@ func (s *Server) echoHello(session *socks5session) error {
 		session.AuthenticateUser = true
 		var out bytes.Buffer
 		out.Write([]byte{socks5Version, socks5AuthWithUserPass})
-		ii := session.I.ToBytes()
+		ii, err := session.I.ToBytes()
+		if err != nil {
+			log.Println("serialize encrypt method failed", err)
+			return err
+		}
 		out.WriteByte(byte(len(ii)))
 		out.Write(ii)
 		_, err = con.Write(out.Bytes())

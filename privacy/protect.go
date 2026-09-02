@@ -10,31 +10,62 @@ import (
 	"strings"
 )
 
-// EncryptThings for everything protecting
-type EncryptThings interface {
-	// encrypt the bytes
+type Encryptor interface {
+	// RecommendedBufferSize returns the recommended buffer size for the given source length.
+	RecommendedBufferSize(srcLen int) int
+
+	// Compress encrypts the source data using the provided key and writes the result to the output buffer.
+	// It returns the number of bytes written to the output buffer and any error encountered.
 	Compress(src []byte, key []byte, out []byte) (int, error)
 
-	// descrypt the bytes
+	// Uncompress decrypts the source data using the provided key and writes the result to the output buffer.
+	// It returns the number of bytes written to the output buffer and any error encountered.
 	Uncompress(src []byte, key []byte, out []byte) (int, error)
+}
 
-	//iv
+type IVManager interface {
+	// GenerateIV generates a new initialization vector (IV) for encryption.
+	// It returns the generated IV and any error encountered.
+	GenerateIV() ([]byte, error)
+
+	// SetIV sets the initialization vector (IV) for encryption.
+	// It returns any error encountered.
+	SetIV(iv []byte) error
+
+	// GetIV returns the current initialization vector (IV) used for encryption.
+	// It returns the IV and any error encountered.
 	GetIV() []byte
+}
 
-	// salt
-	MakeSalt() []byte
+type SaltManager interface {
+	// GenerateSalt generates a new salt value for encryption.
+	// It returns the generated salt and any error encountered.
 
-	//SetIV
-	SetIV([]byte)
+	GenerateSalt() ([]byte, error)
+	// GetSalt returns the current salt value used for encryption.
+	// It returns the salt and any error encountered.
+	GetSalt() []byte
+}
 
-	//GetSize
-	GetSize() int
+type Serializable interface {
+	// ToBytes serializes the object to a byte slice.
+	// It returns the serialized byte slice and any error encountered.
+	ToBytes() ([]byte, error)
 
-	//bytes
-	ToBytes() []byte
+	// FromBytes deserializes the object from a byte slice.
+	// It returns any error encountered during deserialization.
+	FromBytes(data []byte) error
 
-	//From bytes
-	FromBytes(v []byte) error
+	// PartialSerializeSize returns the size of the serialized data without actually serializing it.
+	PartialSerializeSize() int
+}
+
+// EncryptThings for everything protecting
+type EncryptThings interface {
+	Encryptor
+	IVManager
+	SaltManager
+	Serializable
 }
 
 var globalTable map[string]interface{} = make(map[string]interface{})
@@ -78,7 +109,13 @@ func NewMethodWithName(name string) EncryptThings {
 func createObject(target interface{}) EncryptThings {
 	t := reflect.New(reflect.TypeOf(target).Elem()).Elem().Addr().Interface()
 	if i, ok := t.(EncryptThings); ok {
-		i.SetIV(i.MakeSalt())
+		salt, err := i.GenerateSalt()
+		if err != nil {
+			log.Println("create encrypt method failed!!")
+			return nil
+		}
+
+		i.SetIV(salt)
 		return i
 	}
 	log.Println("create encrypt method failed!!")

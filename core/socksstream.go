@@ -57,7 +57,7 @@ func (sock *Socks5Socket) Read(b []byte) (int, error) {
 
 	vLen := utils.Bytes2Int(buffer)
 
-	if (vLen > uint32(mem.LARGE_BUFFER_SIZE)) || (vLen <= 0) {
+	if (vLen > uint32(mem.GetLargeSize())) || (vLen <= 0) {
 		log.Println("read raw content failed, invalid length", vLen)
 		return 0, errors.New("invalid length")
 	}
@@ -69,7 +69,7 @@ func (sock *Socks5Socket) Read(b []byte) (int, error) {
 	}
 
 	rLen := len(buffer)
-	if rLen > mem.LARGE_BUFFER_SIZE {
+	if rLen > mem.GetLargeSize() {
 		return 0, errors.New("out of out buffer")
 	}
 	outBuffer := mem.GetLarge()
@@ -93,8 +93,8 @@ func (sock *Socks5Socket) Read(b []byte) (int, error) {
 }
 
 func (sock *Socks5Socket) Write(b []byte) (int, error) {
-	outlen := len(b)
-	if outlen == 0 || outlen > mem.LARGE_BUFFER_SIZE {
+	outlen := sock.I.RecommendedBufferSize(len(b))
+	if outlen == 0 || outlen > mem.GetLargeSize() {
 		return 0, errors.New("input buffer size is zero or buffer is too large")
 	}
 

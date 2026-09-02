@@ -13,9 +13,31 @@ type gcm struct {
 }
 
 const (
-	gcmName = "AES-GCM"
-	gcmCode = 0x1234
+	gcmName       = "AES-GCM"
+	gcmCode       = 0x1234
+	gcmBlockSize  = 16
+	gcmNonceSize  = 12
+	gcmTagSize    = 16
+	gcmMinTagSize = 12
 )
+
+func newAESGCM(key []byte) (cipher.AEAD, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	if block.BlockSize() != gcmBlockSize {
+		return nil, errors.New("privacy: AES-GCM requires 128-bit block size")
+	}
+	return cipher.NewGCM(block)
+}
+
+func (g *gcm) RecommendedBufferSize(srcLen int) int {
+	if g == nil {
+		return srcLen
+	}
+	return srcLen + gcmTagSize
+}
 
 func (g *gcm) Compress(src []byte, key []byte, out []byte) (int, error) {
 	if g == nil {
@@ -23,29 +45,23 @@ func (g *gcm) Compress(src []byte, key []byte, out []byte) (int, error) {
 	}
 	defer utils.Trace("Compress")()
 
-	block, err := aes.NewCipher(key)
+	aesgcm, err := newAESGCM(key)
 	if err != nil {
 		return 0, err
 	}
 
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return 0, err
+	if len(g.iv) == 0 {
+		return 0, errors.New("privacy: empty IV")
 	}
-
-	ciphertext := aesgcm.Seal(nil, g.iv, src, nil)
-	n := len(ciphertext)
-	if n == 0 {
-		return 0, errors.New("compressed failed")
-	}
-
-	if len(out) < n {
+	if len(out) < len(src)+aesgcm.Overhead() {
 		return 0, errors.New("out of buffer")
 	}
 
-	m := copy(out, ciphertext)
-
-	return m, nil
+	ciphertext := aesgcm.Seal(out[:0], g.iv, src, nil)
+	if len(ciphertext) == 0 {
+		return 0, errors.New("compressed failed")
+	}
+	return len(ciphertext), nil
 }
 
 func (g *gcm) Uncompress(src []byte, key []byte, out []byte) (int, error) {
@@ -54,37 +70,46 @@ func (g *gcm) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 	}
 	defer utils.Trace("Uncompress")()
 
-	block, err := aes.NewCipher(key)
+	aesgcm, err := newAESGCM(key)
 	if err != nil {
 		return 0, err
 	}
 
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return 0, err
+	if len(g.iv) == 0 {
+		return 0, errors.New("privacy: empty IV")
+	}
+	if len(src) < aesgcm.Overhead() {
+		return 0, errors.New("ciphertext too short")
 	}
 
 	plaintext, err := aesgcm.Open(nil, g.iv, src, nil)
-	n := len(plaintext)
-
-	if n == 0 {
+	if err != nil {
+		return 0, err
+	}
+	if len(plaintext) == 0 {
 		return 0, errors.New("compressed failed")
 	}
-
-	if len(out) < n {
+	if len(out) < len(plaintext) {
 		return 0, errors.New("out of buffer")
 	}
 
 	m := copy(out, plaintext)
-
-	return m, err
+	return m, nil
 }
 
-func (g *gcm) MakeSalt() []byte {
+func (g *gcm) GenerateIV() ([]byte, error) {
 	if g == nil {
-		return nil
+		return nil, errors.New("privacy: nil receiver")
 	}
-	return randomBytes(12)
+	iv := randomBytes(gcmNonceSize)
+	if iv == nil {
+		return nil, errors.New("generate IV failed")
+	}
+	return iv, nil
+}
+
+func (g *gcm) GenerateSalt() ([]byte, error) {
+	return g.GenerateIV()
 }
 
 func (g *gcm) GetIV() []byte {
@@ -94,25 +119,40 @@ func (g *gcm) GetIV() []byte {
 	return cloneBytes(g.iv)
 }
 
-func (g *gcm) SetIV(iv []byte) {
-	if g == nil {
-		return
-	}
-	g.iv = cloneBytes(iv)
+func (g *gcm) GetSalt() []byte {
+	return g.GetIV()
 }
 
-func (g *gcm) GetSize() int {
+func (g *gcm) SetIV(iv []byte) error {
+	if g == nil {
+		return errors.New("privacy: nil receiver")
+	}
+	if len(iv) != gcmNonceSize {
+		return errors.New("IV length must be 12 bytes")
+	}
+	g.iv = cloneBytes(iv)
+	return nil
+}
+
+func (g *gcm) PartialSerializeSize() int {
 	if g == nil {
 		return 0
 	}
 	return 2 + 1 + len(g.iv)
 }
 
-func (g *gcm) ToBytes() []byte {
+func (g *gcm) BlockSize() int {
 	if g == nil {
-		return nil
+		return 0
 	}
-	return methodToBytes(gcmCode, g.iv)
+	return gcmBlockSize
+}
+
+func (g *gcm) ToBytes() ([]byte, error) {
+	if g == nil {
+		return nil, errors.New("privacy: nil receiver")
+	}
+	return methodToBytes(gcmCode, g.iv), nil
 }
 
 // From bytes
@@ -125,7 +165,9 @@ func (g *gcm) FromBytes(v []byte) error {
 		return err
 	}
 	if iv != nil {
-		g.SetIV(iv)
+		if err := g.SetIV(iv); err != nil {
+			return err
+		}
 	}
 	return nil
 }

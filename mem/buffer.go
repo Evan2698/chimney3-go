@@ -22,15 +22,15 @@ var (
 )
 
 const (
-	LARGE_BUFFER_SIZE = 4096
-	SMALL_BUFFER_SIZE = 512
+	large_BUFFER_SIZE = 4096
+	small_BUFFER_SIZE = 512
 )
 
 func newApplicationBuffer() Buffer {
 	once.Do(func() {
 		instance = &bufferHolder{
-			smallbuffer: NewPool(SMALL_BUFFER_SIZE),
-			largebuffer: NewPool(LARGE_BUFFER_SIZE),
+			smallbuffer: NewPool(small_BUFFER_SIZE),
+			largebuffer: NewPool(large_BUFFER_SIZE),
 		}
 	})
 	return instance
@@ -41,6 +41,8 @@ func GetLarge() []byte  { return newApplicationBuffer().GetLarge() }
 func PutLarge(b []byte) { newApplicationBuffer().PutLarge(b) }
 func GetSmall() []byte  { return newApplicationBuffer().GetSmall() }
 func PutSmall(b []byte) { newApplicationBuffer().PutSmall(b) }
+func GetLargeSize() int { return large_BUFFER_SIZE }
+func GetSmallSize() int { return small_BUFFER_SIZE }
 
 func (b *bufferHolder) GetLarge() []byte {
 	if b == nil || b.largebuffer == nil {

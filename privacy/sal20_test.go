@@ -9,7 +9,8 @@ func TestSalsa(t *testing.T) {
 	key := []byte("12345678901234567890123456789012")
 	plaintext := []byte("Hello, World! This is a test message for Salsa20 encryption.")
 	s := &salsa_20{}
-	s.SetIV(s.MakeSalt())
+	salt, _ := s.GenerateSalt()
+	s.SetIV(salt)
 
 	// 加密
 	ciphertext := make([]byte, len(plaintext))

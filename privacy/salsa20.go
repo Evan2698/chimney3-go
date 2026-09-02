@@ -15,6 +15,13 @@ const (
 	salsaCode = 0x1238
 )
 
+func (g *salsa_20) RecommendedBufferSize(srcLen int) int {
+	if g == nil {
+		return srcLen
+	}
+	return srcLen
+}
+
 func (g *salsa_20) Compress(src []byte, key []byte, out []byte) (int, error) {
 	if g == nil {
 		return 0, errors.New("privacy: nil receiver")
@@ -52,11 +59,19 @@ func (g *salsa_20) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 	return g.Compress(src, key, out)
 }
 
-func (g *salsa_20) MakeSalt() []byte {
+func (g *salsa_20) GenerateIV() ([]byte, error) {
 	if g == nil {
-		return nil
+		return nil, errors.New("privacy: nil receiver")
 	}
-	return randomBytes(24)
+	iv := randomBytes(24)
+	if iv == nil {
+		return nil, errors.New("generate IV failed")
+	}
+	return iv, nil
+}
+
+func (g *salsa_20) GenerateSalt() ([]byte, error) {
+	return g.GenerateIV()
 }
 
 func (g *salsa_20) GetIV() []byte {
@@ -66,25 +81,33 @@ func (g *salsa_20) GetIV() []byte {
 	return cloneBytes(g.iv)
 }
 
-func (g *salsa_20) SetIV(iv []byte) {
-	if g == nil {
-		return
-	}
-	g.iv = cloneBytes(iv)
+func (g *salsa_20) GetSalt() []byte {
+	return g.GetIV()
 }
 
-func (g *salsa_20) GetSize() int {
+func (g *salsa_20) SetIV(iv []byte) error {
+	if g == nil {
+		return errors.New("privacy: nil receiver")
+	}
+	if len(iv) != 24 {
+		return errors.New("IV length must be 24 bytes")
+	}
+	g.iv = cloneBytes(iv)
+	return nil
+}
+
+func (g *salsa_20) PartialSerializeSize() int {
 	if g == nil {
 		return 0
 	}
 	return 2 + 1 + len(g.iv)
 }
 
-func (g *salsa_20) ToBytes() []byte {
+func (g *salsa_20) ToBytes() ([]byte, error) {
 	if g == nil {
-		return nil
+		return nil, errors.New("privacy: nil receiver")
 	}
-	return methodToBytes(salsaCode, g.iv)
+	return methodToBytes(salsaCode, g.iv), nil
 }
 
 // From bytes
@@ -97,7 +120,9 @@ func (g *salsa_20) FromBytes(v []byte) error {
 		return err
 	}
 	if iv != nil {
-		g.SetIV(iv)
+		if err := g.SetIV(iv); err != nil {
+			return err
+		}
 	}
 	return nil
 }
