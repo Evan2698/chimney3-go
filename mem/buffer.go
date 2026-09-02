@@ -22,7 +22,7 @@ var (
 )
 
 const (
-	large_BUFFER_SIZE = 4096
+	large_BUFFER_SIZE = 8192
 	small_BUFFER_SIZE = 512
 )
 
