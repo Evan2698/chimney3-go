@@ -130,16 +130,16 @@ func newMethodWithCode(code uint16) EncryptThings {
 }
 
 // MakeCompressKey ..
-func MakeCompressKey(srcKey string) []byte {
-	key := []byte("98765432109876543210987654321098")
-	tmp := BuildMacHash(key, srcKey)
+func DeriveCompressionKey(srcKey string) []byte {
+	key := []byte("d7722deb18976aa66e5eb70cb804b0ee")
+	tmp := ComputeHMACSHA256(key, srcKey)
 	out := [32]byte{0}
 	copy(out[:], tmp)
 	return out[:32]
 }
 
 // BuildMacHash ..
-func BuildMacHash(key []byte, message string) []byte {
+func ComputeHMACSHA256(key []byte, message string) []byte {
 	h := hmac.New(sha256.New, key)
 	h.Write([]byte(message))
 	return h.Sum(nil)
