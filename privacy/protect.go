@@ -136,11 +136,7 @@ const (
 
 // MakeCompressKey ..
 func DeriveCompressionKey(srcKey string) []byte {
-	key := []byte(CompressionKeySalt)
-	tmp := ComputeHMACSHA256(key, srcKey)
-	out := [32]byte{0}
-	copy(out[:], tmp)
-	return out[:32]
+	return ComputeHMACSHA256([]byte(CompressionKeySalt), srcKey)
 }
 
 // BuildMacHash ..
