@@ -129,9 +129,14 @@ func newMethodWithCode(code uint16) EncryptThings {
 	return nil
 }
 
+const (
+	// CompressionKeySalt is a constant string used as a salt for deriving compression keys.
+	CompressionKeySalt = "d7722deb18976aa66e5eb70cb804b0ee"
+)
+
 // MakeCompressKey ..
 func DeriveCompressionKey(srcKey string) []byte {
-	key := []byte("d7722deb18976aa66e5eb70cb804b0ee")
+	key := []byte(CompressionKeySalt)
 	tmp := ComputeHMACSHA256(key, srcKey)
 	out := [32]byte{0}
 	copy(out[:], tmp)
