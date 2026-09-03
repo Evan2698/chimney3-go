@@ -25,7 +25,7 @@ func defaultLogWriter() io.Writer {
 }
 
 func init() {
-	configureLogger(DefaultWriter())
+	configureLogger(defaultLogWriter())
 }
 
 func setlogglobal() io.Writer {
