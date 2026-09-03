@@ -134,7 +134,7 @@ const (
 	CompressionKeySalt = "d7722deb18976aa66e5eb70cb804b0ee"
 )
 
-// MakeCompressKey ..
+// DeriveCompressionKey derives a compression key from the given source key using HMAC-SHA256 with a predefined salt.
 func DeriveCompressionKey(srcKey string) []byte {
 	return ComputeHMACSHA256([]byte(CompressionKeySalt), srcKey)
 }
