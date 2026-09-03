@@ -64,7 +64,7 @@ func (c *Socks5) Dial(addr *core.Socks5Address) (core.SocksStream, error) {
 		}
 	}()
 
-	key := privacy.MakeCompressKey(c.Settings.PassWord)
+	key := privacy.DeriveCompressionKey(c.Settings.PassWord)
 	if err = c.runHandshake(rawSocket, key); err != nil {
 		log.Println("authenticate failed! ", err)
 		return nil, err
@@ -137,7 +137,7 @@ func (c *Socks5) authenticateUser(con io.ReadWriteCloser, key []byte) error {
 	}
 	c.I = i
 
-	usrsha1 := privacy.BuildMacHash(key, c.Settings.User)
+	usrsha1 := privacy.ComputeHMACSHA256(key, c.Settings.User)
 
 	tmpOutBuffer := mem.GetSmall()
 	defer func() {

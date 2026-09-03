@@ -64,7 +64,7 @@ func TestSocket(t *testing.T) {
 	con := &mockCon{}
 
 	socket := NewSocks5Socket(con, privacy.NewMethodWithName("CHACHA-20"),
-		privacy.MakeCompressKey("hello"), nil, nil)
+		privacy.DeriveCompressionKey("hello"), nil, nil)
 
 	socket.Write([]byte("hello world!!!"))
 

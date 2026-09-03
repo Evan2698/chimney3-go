@@ -36,7 +36,7 @@ func (p *proxyServer) Serve() error {
 	if p.Password == "" && p.Host == "" && p.Which == "" {
 		return fmt.Errorf("proxy server: empty configuration")
 	}
-	key := privacy.MakeCompressKey(p.Password)
+	key := privacy.DeriveCompressionKey(p.Password)
 	II := privacy.NewMethodWithName(p.Which)
 	l, err := core.ListenSSL(p.Host, key, II)
 	if err != nil {

@@ -85,7 +85,7 @@ func (s *Server) acceptLoop(l net.Listener) error {
 		return fmt.Errorf("settings: nil")
 	}
 	i := privacy.NewMethodWithName(s.Settings.Method)
-	key := privacy.MakeCompressKey(s.Settings.PassWord)
+	key := privacy.DeriveCompressionKey(s.Settings.PassWord)
 
 	for {
 		con, err := l.Accept()
@@ -272,7 +272,7 @@ func (s *Server) authUser(session *socks5session) error {
 
 	pass := tmpBuffer[3+userLen+1 : n]
 
-	sha1 := privacy.BuildMacHash(session.Key, userName)
+	sha1 := privacy.ComputeHMACSHA256(session.Key, userName)
 
 	tmpOutBuffer := mem.GetSmall()
 	defer func() {

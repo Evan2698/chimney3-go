@@ -92,7 +92,7 @@ func (c *proxyClient) serveOn(con net.Conn) {
 }
 
 func (c *proxyClient) connectToRemote() (net.Conn, error) {
-	key := privacy.MakeCompressKey(c.Password)
+	key := privacy.DeriveCompressionKey(c.Password)
 	dstIm, err := net.Dial("tcp", c.ProxyAddress)
 	if err != nil {
 		return nil, err
