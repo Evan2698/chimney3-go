@@ -1,5 +1,5 @@
 {
-  "listen": "0.0.0.0:8889",
+  "listen": "[::1]:9025",
   "remote_listen": "127.0.0.1:9090",
   "username": "where",
   "password": "N4gzAraHGgt6EshGZtv2",
@@ -7,5 +7,5 @@
   "which": "socks5",
   "udplisten": "0.0.0.0:15999",
   "httpurl": "0.0.0.0:4010",
-  "mode": "client"
+  "mode": "server"
 }
