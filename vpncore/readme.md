@@ -4,4 +4,4 @@
 - execute command: gomobile bind -v -o android.aar -target=android -androidapi 30 ./vpncore
 - check jar file and aar file 
 
-gomobile bind -v -o android.aar -target=android -androidapi 30 -ldflags '-w -s' /home/evan/MyWorks/chimney3-go/vpncore
+gomobile bind -v -o vpn.aar -target=android -androidapi 30 -ldflags '-w -s' /home/evan/MyWorks/chimney3-go/vpncore

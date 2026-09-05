@@ -35,6 +35,8 @@ var (
 // stopped.
 func StartChimney(c *Chimney) error {
 
+	//log.Default().SetOutput(os.Stdout)
+
 	wg.Add(1)
 
 	var err error
