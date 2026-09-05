@@ -160,7 +160,7 @@ func (c *Socks5) authenticateUser(con io.ReadWriteCloser, key []byte) error {
 	out.Write(usr)
 	out.WriteByte(byte(n))
 	out.Write(tmpOutBuffer[:n])
-	log.Println("sha1 ", usrsha1, "enc=", tmpOutBuffer[:n])
+	//log.Println("sha1 ", usrsha1, "enc=", tmpOutBuffer[:n])
 
 	// log.Println("I=", c.I.ToBytes())
 	// log.Println("user len=(C)", userLen, " username byte: ", usr, "username=", c.Settings.User)
