@@ -1,14 +1,13 @@
 package core
 
 import (
-	"chimney3-go/utils"
 	"errors"
 	"log"
 	"net"
 )
 
 func ReadXBytes(bytes uint32, buffer []byte, con net.Conn) ([]byte, error) {
-	defer utils.Trace("readXBytes.readXBytes")()
+	//defer utils.Trace("readXBytes.readXBytes")()
 	if bytes <= 0 {
 		return nil, errors.New("0 bytes can not read! ")
 	}
@@ -40,7 +39,7 @@ func ReadXBytes(bytes uint32, buffer []byte, con net.Conn) ([]byte, error) {
 }
 
 func WriteXBytes(buffer []byte, con net.Conn) (int, error) {
-	defer utils.Trace("writeXBytes.writeXBytes")()
+	//defer utils.Trace("writeXBytes.writeXBytes")()
 	nbytes := uint32(len(buffer))
 	var index uint32 = 0
 	var err error

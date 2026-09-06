@@ -124,7 +124,7 @@ func (s *Server) serveOn(session *socks5session) {
 		}
 	}()
 	defer session.Close()
-	defer utils.Trace("serveOn")()
+	//defer utils.Trace("serveOn")()
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(" fatal error on proxyWrite: ", err)

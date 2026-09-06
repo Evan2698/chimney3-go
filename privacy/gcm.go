@@ -1,8 +1,6 @@
 package privacy
 
 import (
-	"chimney3-go/utils"
-
 	"crypto/aes"
 	"crypto/cipher"
 	"errors"
@@ -43,7 +41,7 @@ func (g *gcm) Compress(src []byte, key []byte, out []byte) (int, error) {
 	if g == nil {
 		return 0, errors.New("privacy: nil receiver")
 	}
-	defer utils.Trace("Compress")()
+	//defer utils.Trace("Compress")()
 
 	aesgcm, err := newAESGCM(key)
 	if err != nil {
@@ -68,7 +66,7 @@ func (g *gcm) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 	if g == nil {
 		return 0, errors.New("privacy: nil receiver")
 	}
-	defer utils.Trace("Uncompress")()
+	//defer utils.Trace("Uncompress")()
 
 	aesgcm, err := newAESGCM(key)
 	if err != nil {

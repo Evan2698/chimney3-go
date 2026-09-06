@@ -1,7 +1,6 @@
 package privacy
 
 import (
-	"chimney3-go/utils"
 	"crypto/cipher"
 	"errors"
 
@@ -38,7 +37,7 @@ func (p *ploy) Compress(src []byte, key []byte, out []byte) (int, error) {
 	if p == nil {
 		return 0, errors.New("privacy: nil receiver")
 	}
-	defer utils.Trace("Compress")()
+	//defer utils.Trace("Compress")()
 
 	if len(key) != chacha20poly1305.KeySize {
 		return 0, errors.New("key length must be 32 bytes")
@@ -66,7 +65,7 @@ func (p *ploy) Uncompress(src []byte, key []byte, out []byte) (int, error) {
 	if p == nil {
 		return 0, errors.New("privacy: nil receiver")
 	}
-	defer utils.Trace("Uncompress")()
+	//defer utils.Trace("Uncompress")()
 
 	if len(key) != chacha20poly1305.KeySize {
 		return 0, errors.New("key length must be 32 bytes")

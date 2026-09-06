@@ -1,7 +1,6 @@
 package privacy
 
 import (
-	"chimney3-go/utils"
 	"errors"
 )
 
@@ -25,7 +24,7 @@ func (raw *rawMethod) Compress(src []byte, key []byte, out []byte) (int, error) 
 	if raw == nil {
 		return 0, errors.New("privacy: nil receiver")
 	}
-	defer utils.Trace("Compress")()
+	//defer utils.Trace("Compress")()
 	n := copy(out, src)
 	return n, nil
 }
