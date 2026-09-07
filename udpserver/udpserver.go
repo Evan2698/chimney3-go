@@ -29,11 +29,6 @@ func serveLoop(ctx servercontext.ServerContext, conn *net.UDPConn) {
 		if ctx.IsInterrupted() {
 			return
 		}
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
 
 		conn.SetReadDeadline(time.Now().Add(timeout * time.Second))
 		n, addr, err := conn.ReadFromUDP(buf)
