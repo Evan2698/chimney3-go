@@ -13,6 +13,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 	"tun2proxylib/mobile"
 )
 
@@ -39,6 +40,8 @@ type Server struct {
 }
 
 type Socks5S = Server
+
+const outboundDialTimeout = 10 * time.Second
 
 type socks5session struct {
 	Conn             net.Conn
@@ -146,8 +149,8 @@ func (s *Server) serveOn(session *socks5session) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
-	go copyConnect2Connect(session.Conn, dstConn, &wg)
-	go copyConnect2Connect(dstConn, session.Conn, &wg)
+	go copyConnect2Connect(session.Conn, dstConn, &wg, session.Conn, dstConn)
+	go copyConnect2Connect(dstConn, session.Conn, &wg, session.Conn, dstConn)
 	wg.Wait()
 }
 
@@ -156,7 +159,13 @@ func writeReply(conn net.Conn, reply []byte) error {
 	return err
 }
 
-func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup) {
+func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup, connections ...net.Conn) {
+	defer wg.Done()
+	defer func() {
+		for _, conn := range connections {
+			utils.CloseQuietly(conn)
+		}
+	}()
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(" fatal error on proxy: ", err)
@@ -182,8 +191,6 @@ func copyConnect2Connect(src, dst net.Conn, wg *sync.WaitGroup) {
 			break
 		}
 	}
-
-	wg.Done()
 
 }
 
@@ -432,5 +439,5 @@ func buildTcpSocket(addr *core.Socks5Address) (net.Conn, error) {
 
 	host := addr.String()
 	log.Println("connect the host: ", host)
-	return net.Dial("tcp", host)
+	return net.DialTimeout("tcp", host, outboundDialTimeout)
 }
