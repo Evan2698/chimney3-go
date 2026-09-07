@@ -4,7 +4,6 @@ import (
 	"chimney3-go/socks5"
 	"log"
 	"sync"
-     "os"
 
 	"tun2proxylib/mobile"
 
@@ -36,7 +35,7 @@ var (
 // stopped.
 func StartChimney(c *Chimney) error {
 
-	log.Default().SetOutput(os.Stdout)
+	//log.Default().SetOutput(os.Stdout)
 
 	wg.Add(1)
 
