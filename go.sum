@@ -1,7 +1,7 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/Evan2698/tun2proxylib v0.0.9 h1:eGgr0vpqKU0H4yXF6/Cb1/6kQNvTX54Sk9eFD4EqkoY=
-github.com/Evan2698/tun2proxylib v0.0.9/go.mod h1:vwmj24Su7pH6CeEhzsucSCB6o+s70cypOnGYKK4hw0I=
+github.com/Evan2698/tun2proxylib v0.1.0 h1:Y2IZCksSfTQaDxMaQySUQR31uzvjJGCrWEeye6TrUuU=
+github.com/Evan2698/tun2proxylib v0.1.0/go.mod h1:vwmj24Su7pH6CeEhzsucSCB6o+s70cypOnGYKK4hw0I=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=

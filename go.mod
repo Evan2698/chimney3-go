@@ -7,7 +7,7 @@ require (
 	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.58.0
 	gvisor.dev/gvisor v0.0.0-20250828211149-1f30edfbb5d4
-	tun2proxylib v0.0.9
+	tun2proxylib v0.1.0
 )
 
 require (
@@ -24,6 +24,6 @@ require (
 	golang.org/x/tools v0.49.0 // indirect
 )
 
-replace tun2proxylib => github.com/Evan2698/tun2proxylib v0.0.9
+replace tun2proxylib => github.com/Evan2698/tun2proxylib v0.1.0
 
 tool golang.org/x/mobile/cmd/gobind
