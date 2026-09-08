@@ -18,19 +18,17 @@ func (s *Settings) validateAddress(addr, field string) error {
 	}
 
 	if host, port, err := net.SplitHostPort(addr); err == nil {
-		if host == "" {
-			if _, err := strconv.Atoi(port); err != nil {
-				return fmt.Errorf("%s: invalid port %q", field, port)
-			}
-			return nil
-		}
-		if _, err := strconv.Atoi(port); err != nil {
+		portNumber, portErr := strconv.Atoi(port)
+		if portErr != nil || portNumber < 0 || portNumber > 65535 {
 			return fmt.Errorf("%s: invalid port %q", field, port)
+		}
+		if host == "" {
+			return nil
 		}
 		return nil
 	}
 
-	if _, err := strconv.Atoi(addr); err == nil {
+	if port, err := strconv.Atoi(addr); err == nil && port >= 0 && port <= 65535 {
 		return nil
 	}
 

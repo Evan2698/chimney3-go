@@ -44,6 +44,9 @@ func (sock *SSLSocketImpl) IsOk() bool {
 }
 
 func (sock *SSLSocketImpl) HandshakeClient() error {
+	if sock == nil || sock.RawConnection == nil {
+		return errors.New("invalid socket")
+	}
 
 	buffer := mem.GetSmall()
 	defer func() {
@@ -51,27 +54,27 @@ func (sock *SSLSocketImpl) HandshakeClient() error {
 	}()
 
 	// Step 1: say hello
-	sock.RawConnection.Write([]byte{0x5, 0x0})
-
-	// Step 2: receive EncryptThings from the server
-	n, err := sock.RawConnection.Read(buffer[:])
-	if err != nil {
-		log.Println("read failed ", err)
+	if _, err := WriteXBytes([]byte{0x5, 0x0}, sock.RawConnection); err != nil {
 		return err
 	}
-	if n < 2 {
-		log.Println("handshake failed ")
-		return errors.New("handshake failed")
+
+	// Step 2: receive EncryptThings from the server
+	if _, err := ReadXBytes(3, buffer[:3], sock.RawConnection); err != nil {
+		return err
 	}
+	n := 3 + int(buffer[2])
+	if n > len(buffer) {
+		return errors.New("handshake payload is too large")
+	}
+	if _, err := ReadXBytes(uint32(buffer[2]), buffer[3:n], sock.RawConnection); err != nil {
+		return err
+	}
+	err := error(nil)
 	if !bytes.Equal(buffer[:2], []byte{0x5, 0x0}) {
 		log.Println("protocol is incorrect")
 		return errors.New("protocol is incorrect")
 	}
 	ebytes := buffer[3:n]
-	if len(ebytes) != int(buffer[2]) {
-		log.Println("handshake failed ")
-		return errors.New("handshake length is incorrect")
-	}
 
 	i, err := privacy.FromBytes(ebytes)
 	if err != nil {
@@ -81,7 +84,7 @@ func (sock *SSLSocketImpl) HandshakeClient() error {
 	sock.II = i
 
 	// step 3: send ok
-	_, err = sock.RawConnection.Write([]byte{0x5, 0x1, 0x0})
+	_, err = WriteXBytes([]byte{0x5, 0x1, 0x0}, sock.RawConnection)
 	if err != nil {
 		log.Println("write failed ", err)
 		return err
@@ -91,20 +94,18 @@ func (sock *SSLSocketImpl) HandshakeClient() error {
 }
 
 func (sock *SSLSocketImpl) HandshakeServer() error {
+	if sock == nil || sock.RawConnection == nil || sock.II == nil {
+		return errors.New("invalid socket")
+	}
 	buffer := mem.GetSmall()
 	defer func() {
 		mem.PutSmall(buffer)
 	}()
 
-	n, err := sock.RawConnection.Read(buffer[:])
-	if err != nil {
-		log.Println("read failed ", err)
+	if _, err := ReadXBytes(2, buffer[:2], sock.RawConnection); err != nil {
 		return err
 	}
-	if n < 2 {
-		log.Println("handshake failed ")
-		return errors.New("handshake failed")
-	}
+	err := error(nil)
 	if !bytes.Equal(buffer[:2], []byte{0x5, 0x0}) {
 		log.Println("protocol is incorrect")
 		return errors.New("protocol is incorrect")
@@ -120,20 +121,14 @@ func (sock *SSLSocketImpl) HandshakeServer() error {
 	memoryBuffer.WriteByte(0x0)
 	memoryBuffer.WriteByte(byte(len(I)))
 	memoryBuffer.Write(I)
-	_, err = sock.RawConnection.Write(memoryBuffer.Bytes())
+	_, err = WriteXBytes(memoryBuffer.Bytes(), sock.RawConnection)
 	if err != nil {
 		log.Println("write failed ", err)
 		return err
 	}
 	// Step 3: receive ok
-	n, err = sock.RawConnection.Read(buffer[:])
-	if err != nil {
-		log.Println("read failed ", err)
+	if _, err = ReadXBytes(3, buffer[:3], sock.RawConnection); err != nil {
 		return err
-	}
-	if n < 2 {
-		log.Println("handshake failed ")
-		return errors.New("handshake failed")
 	}
 	if !bytes.Equal(buffer[:3], []byte{0x5, 0x1, 0x0}) {
 		log.Println("protocol is incorrect")

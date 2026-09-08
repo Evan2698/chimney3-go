@@ -17,6 +17,7 @@ type SSLListenerImpl struct {
 	II            privacy.EncryptThings
 	ListenChannel chan MySSLSocket
 	closeOnce     sync.Once
+	done          chan struct{}
 }
 
 func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener, error) {
@@ -29,6 +30,7 @@ func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener,
 		Key:           key,
 		II:            i,
 		ListenChannel: make(chan MySSLSocket),
+		done:          make(chan struct{}),
 	}
 
 	go func() {
@@ -38,7 +40,11 @@ func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener,
 				log.Println(" accept failed ", err)
 				break
 			}
-			SetConnectTimeout(conn, 600)
+			if err := SetConnectTimeout(conn, 600); err != nil {
+				log.Println(" set handshake timeout failed ", err)
+				_ = conn.Close()
+				continue
+			}
 
 			go func() {
 
@@ -49,8 +55,17 @@ func ListenSSL(host string, key []byte, i privacy.EncryptThings) (MySSLListener,
 					sock.Close()
 					return
 				}
+				if err := SetConnectTimeout(conn, 0); err != nil {
+					log.Println(" clear handshake timeout failed ", err)
+					sock.Close()
+					return
+				}
 				log.Println(" handshake success ", conn.RemoteAddr().String())
-				lss.ListenChannel <- sock
+				select {
+				case lss.ListenChannel <- sock:
+				case <-lss.done:
+					_ = sock.Close()
+				}
 			}()
 		}
 	}()
@@ -62,24 +77,27 @@ func (l *SSLListenerImpl) Accept() (net.Conn, error) {
 	if l == nil || l.ListenChannel == nil {
 		return nil, net.ErrClosed
 	}
-
-	conn, ok := <-l.ListenChannel
-	if !ok {
+	if l.done == nil {
+		conn := <-l.ListenChannel
+		return conn, nil
+	}
+	select {
+	case conn := <-l.ListenChannel:
+		return conn, nil
+	case <-l.done:
 		return nil, net.ErrClosed
 	}
-	log.Println(" accept success ", conn.RemoteAddr().String())
-	return conn, nil
 }
 
 func (l *SSLListenerImpl) Close() error {
 	if l == nil {
 		return nil
 	}
-	if l.ListenChannel != nil {
-		l.closeOnce.Do(func() {
-			close(l.ListenChannel)
-		})
-	}
+	l.closeOnce.Do(func() {
+		if l.done != nil {
+			close(l.done)
+		}
+	})
 	if l.RawListener != nil {
 		return l.RawListener.Close()
 	}

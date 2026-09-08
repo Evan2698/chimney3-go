@@ -50,17 +50,23 @@ func (c *proxyClient) Serve() error {
 	for {
 		con, err := l.Accept()
 		if err != nil {
-			if c.Exit {
+			if c.isExiting() {
 				return nil
 			}
 			return err
 		}
-		if c.Exit {
+		if c.isExiting() {
 			utils.CloseQuietly(con)
 			return nil
 		}
 		go c.serveOn(con)
 	}
+}
+
+func (c *proxyClient) isExiting() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Exit
 }
 
 func (c *proxyClient) Close() error {

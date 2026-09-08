@@ -32,6 +32,9 @@ func startHTTPBridge(httpAddr, socks5Addr string) {
 
 // RunServer 启动 SOCKS5 服务器或客户端，依据 isServer 参数。
 func RunServer(s *settings.Settings, ctx servercontext.ServerContext) error {
+	if s == nil {
+		return fmt.Errorf("settings: nil")
+	}
 	isServer := utils.IsServerMode(s.Mode)
 	if isServer {
 		return startSocks5Server(s, ctx)

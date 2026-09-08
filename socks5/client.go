@@ -183,6 +183,9 @@ func (c *Socks5) authenticateUser(con io.ReadWriteCloser, key []byte) error {
 }
 
 func (c *Socks5) connectTarget(con net.Conn, addr *core.Socks5Address, key []byte) (dst *core.Socks5Address, err error) {
+	if con == nil || addr == nil || c == nil || c.I == nil {
+		return nil, errors.New("invalid connection or address")
+	}
 
 	var op bytes.Buffer
 	op.Write([]byte{socks5Version, socks5CMDConnect, 0x00, addr.Type})
@@ -211,7 +214,7 @@ func (c *Socks5) connectTarget(con net.Conn, addr *core.Socks5Address, key []byt
 
 	if n < 10 || !bytes.Equal(tmpBuffer[:3], []byte{socks5Version, 0x00, 00}) {
 		log.Println("there is a format error in response ", tmpBuffer[:n])
-		return nil, err
+		return nil, errors.New("invalid connect response")
 	}
 
 	response := tmpBuffer[5:n]
@@ -223,6 +226,9 @@ func (c *Socks5) connectTarget(con net.Conn, addr *core.Socks5Address, key []byt
 	n, err = c.I.Uncompress(response, key, tmpOutBuffer)
 	if err != nil || n < 1 {
 		log.Println("dst address parse failed: ", err)
+		if err == nil {
+			err = errors.New("empty destination address")
+		}
 		return nil, err
 	}
 

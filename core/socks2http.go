@@ -85,5 +85,7 @@ func (h *HttpProxyRoutineHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 // transfer 用于连接两个 net.Conn 并转发数据。
 func transfer(src, dst net.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer src.Close()
+	defer dst.Close()
 	_, _ = io.Copy(dst, src)
 }

@@ -11,9 +11,12 @@ import (
 // the running subsystem encounters a terminal error. Callers should decide
 // whether to log/fatal or attempt recovery.
 func RunServer(s *settings.Settings, ctx servercontext.ServerContext) error {
+	if s == nil {
+		return fmt.Errorf("settings: nil")
+	}
 	isServer := utils.IsServerMode(s.Mode)
 	if isServer {
-		return runserver(s)
+		return runServerWithContext(s, ctx)
 	}
 	return runclient(s)
 }
@@ -44,4 +47,22 @@ func runserver(s *settings.Settings) error {
 
 	utils.StartUDPServerIfConfigured(s.Udplisten)
 	return ps.Serve()
+}
+
+func runServerWithContext(s *settings.Settings, ctx servercontext.ServerContext) error {
+	if s == nil {
+		return fmt.Errorf("settings: nil")
+	}
+	ps := &proxyServer{
+		Host:     s.Listen,
+		Password: s.Password,
+		Which:    s.Which,
+	}
+	ps.ctx = ctx
+	utils.StartUDPServerIfConfigured(s.Udplisten)
+	err := ps.Serve()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return err
 }

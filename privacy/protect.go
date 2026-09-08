@@ -83,8 +83,8 @@ func register(name string, mask uint16, i interface{}) {
 
 // FromBytes ...
 func FromBytes(buf []byte) (EncryptThings, error) {
-	if buf == nil {
-		return nil, errors.New("invalid paramter")
+	if len(buf) < 2 {
+		return nil, errors.New("invalid parameter")
 	}
 
 	code := utils.Bytes2Uint16(buf[:2])

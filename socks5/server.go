@@ -93,10 +93,6 @@ func (s *Server) acceptLoop(l net.Listener) error {
 	for {
 		con, err := l.Accept()
 		if err != nil {
-			if s.Context.IsInterrupted() {
-				log.Println("EXIT TCP")
-				return nil
-			}
 			log.Println(" accept failed ", err)
 			return err
 		}
@@ -134,7 +130,10 @@ func (s *Server) serveOn(session *socks5session) {
 		}
 	}()
 
-	SetSocketTimeout(session.Conn, MAX_TIME_OUT)
+	if err := SetSocketTimeout(session.Conn, MAX_TIME_OUT); err != nil {
+		log.Println("set session timeout failed", err)
+		return
+	}
 	if err := s.echoHello(session); err != nil {
 		log.Println("echo error", err)
 		return
@@ -143,6 +142,10 @@ func (s *Server) serveOn(session *socks5session) {
 	dstConn, err := s.doCommandConnect(session)
 	if err != nil {
 		log.Println("create dst socket faile", err)
+		return
+	}
+	if err := SetSocketTimeout(session.Conn, 0); err != nil {
+		log.Println("clear session timeout failed", err)
 		return
 	}
 	defer utils.CloseQuietly(dstConn)
@@ -274,10 +277,14 @@ func (s *Server) authUser(session *socks5session) error {
 	}
 
 	userLen := tmpBuffer[2]
-	usr := tmpBuffer[3 : 3+userLen]
+	userEnd := 3 + int(userLen)
+	if userEnd >= n {
+		return errors.New("user and password is incorrect")
+	}
+	usr := tmpBuffer[3:userEnd]
 	userName := string(usr)
 
-	pass := tmpBuffer[3+userLen+1 : n]
+	pass := tmpBuffer[userEnd+1 : n]
 
 	sha1 := privacy.ComputeHMACSHA256(session.Key, userName)
 
@@ -289,6 +296,9 @@ func (s *Server) authUser(session *socks5session) error {
 	if err != nil {
 		log.Println("uncompress user name failed", err)
 		return err
+	}
+	if counter < 0 || counter > len(tmpOutBuffer) {
+		return errors.New("invalid decrypted credentials")
 	}
 
 	if bytes.Equal(sha1, tmpOutBuffer[:counter]) {

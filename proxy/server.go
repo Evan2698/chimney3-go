@@ -3,6 +3,7 @@ package proxy
 import (
 	"chimney3-go/core"
 	"chimney3-go/privacy"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -24,6 +25,7 @@ type proxyServer struct {
 	Exit     bool
 	server   *http.Server
 	listener core.MySSLListener
+	ctx      context.Context
 }
 
 // Server is the canonical proxy server name.
@@ -43,6 +45,21 @@ func (p *proxyServer) Serve() error {
 		return err
 	}
 	p.listener = l
+	if p.ctx != nil {
+		if err := p.ctx.Err(); err != nil {
+			_ = p.Close()
+			return err
+		}
+		done := make(chan struct{})
+		defer close(done)
+		go func() {
+			select {
+			case <-p.ctx.Done():
+				_ = p.Close()
+			case <-done:
+			}
+		}()
+	}
 
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,15 +88,22 @@ func handleTunneling(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
+		_ = dest_conn.Close()
 		http.Error(w, "Hijacking not supported", http.StatusInternalServerError)
 		return
 	}
 	client_conn, _, err := hijacker.Hijack()
 	if err != nil {
+		_ = dest_conn.Close()
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	defer client_conn.Close()
+	if _, err := client_conn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n")); err != nil {
+		_ = dest_conn.Close()
+		return
 	}
 	waitForRelay := startBidirectionalRelay(dest_conn, client_conn)
 	waitForRelay.Wait()

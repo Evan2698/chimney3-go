@@ -5,6 +5,6 @@ import (
 	"net"
 )
 
-func SetSocketTimeout(con net.Conn, tm uint32) {
-	core.SetConnectTimeout(con, tm)
+func SetSocketTimeout(con net.Conn, tm uint32) error {
+	return core.SetConnectTimeout(con, tm)
 }

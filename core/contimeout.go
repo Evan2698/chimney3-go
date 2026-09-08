@@ -5,12 +5,15 @@ import (
 	"time"
 )
 
-func SetConnectTimeout(con net.Conn, tm uint32) {
-	if con != nil && tm != 0 {
-		readTimeout := time.Duration(tm) * time.Second
-		v := time.Now().Add(readTimeout)
-		con.SetReadDeadline(v)
-		con.SetWriteDeadline(v)
-		con.SetDeadline(v)
+func SetConnectTimeout(con net.Conn, tm uint32) error {
+	if con == nil {
+		return nil
 	}
+
+	if tm == 0 {
+		return con.SetDeadline(time.Time{})
+	}
+
+	deadline := time.Now().Add(time.Duration(tm) * time.Second)
+	return con.SetDeadline(deadline)
 }

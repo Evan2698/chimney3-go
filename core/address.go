@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"net"
 	"strconv"
 )
@@ -118,25 +119,40 @@ func (addr *Socks5Address) Bytes() []byte {
 
 func (addr *Socks5Address) Parse(data []byte) error {
 	if addr == nil {
-		return nil
+		return errors.New("nil address")
 	}
-	if len(data) < 7 {
-		addr.Valid = false
-		return nil
+	addr.Valid = false
+	if len(data) == 0 {
+		return errors.New("empty address")
+	}
+	addr.Host = ""
+	addr.IP = nil
+	addr.IPV6 = nil
+	if len(data) < 3 {
+		return errors.New("address is too short")
 	}
 	addr.Type = data[0]
 	if addr.Type == ADDRESSTYPE_DOMAIN {
-		addr.Host = string(data[2 : 2+data[1]])
-		addr.Port = uint16(data[len(data)-2])<<8 | uint16(data[len(data)-1])
+		hostLen := int(data[1])
+		if hostLen == 0 || len(data) != hostLen+4 {
+			return errors.New("invalid domain address length")
+		}
+		addr.Host = string(data[2 : 2+hostLen])
+		addr.Port = uint16(data[2+hostLen])<<8 | uint16(data[3+hostLen])
 	} else if addr.Type == ADDRESSTYPE_IPV4 {
-		addr.IP = data[1:5]
+		if len(data) != 7 {
+			return errors.New("invalid IPv4 address length")
+		}
+		addr.IP = append([]byte(nil), data[1:5]...)
 		addr.Port = uint16(data[len(data)-2])<<8 | uint16(data[len(data)-1])
 	} else if addr.Type == ADDRESSTYPE_IPV6 {
-		addr.IPV6 = data[1:17]
+		if len(data) != 19 {
+			return errors.New("invalid IPv6 address length")
+		}
+		addr.IPV6 = append([]byte(nil), data[1:17]...)
 		addr.Port = uint16(data[len(data)-2])<<8 | uint16(data[len(data)-1])
 	} else {
-		addr.Valid = false
-		return nil
+		return errors.New("unsupported address type")
 	}
 	addr.Valid = true
 	return nil
@@ -150,6 +166,9 @@ func ParseTargetAddress(host string) (*Socks5Address, error) {
 	np, err := strconv.Atoi(p)
 	if err != nil {
 		return nil, err
+	}
+	if np < 0 || np > 65535 {
+		return nil, errors.New("port out of range")
 	}
 
 	v := &Socks5Address{}

@@ -35,6 +35,9 @@ const (
 )
 
 func ReactorWithContext(ctx context.Context, s *settings.Settings) error {
+	if s == nil {
+		return fmt.Errorf("settings: nil")
+	}
 	factory, err := serviceFactoryFor(s.Which)
 	if err != nil {
 		return err

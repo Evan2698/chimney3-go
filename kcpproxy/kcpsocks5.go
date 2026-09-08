@@ -85,6 +85,8 @@ func handleKCPConnection(conn net.Conn, s settings.Settings, block kcp.BlockCryp
 
 func clientRoutine(src, dest net.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer src.Close()
+	defer dest.Close()
 	io.Copy(dest, src)
 }
 
@@ -141,40 +143,55 @@ func handleKCPServerSession(conn *kcp.UDPSession) {
 
 	defer conn.Close()
 	// 1. 握手阶段
-	buf := make([]byte, 258)
-	_, err := io.ReadAtLeast(conn, buf, 2)
+	header := make([]byte, 2)
+	_, err := io.ReadFull(conn, header)
 	if err != nil {
 		return
 	}
 	// 检查 SOCKS5 版本
-	if buf[0] != 0x05 {
+	if header[0] != 0x05 {
 		return
 	}
 	// 不认证
 	conn.Write([]byte{0x05, 0x00})
 
 	// 2. 请求阶段
-	_, err = io.ReadAtLeast(conn, buf, 5)
-	if err != nil {
+	requestHeader := make([]byte, 4)
+	if _, err = io.ReadFull(conn, requestHeader); err != nil {
 		return
 	}
-	if buf[0] != 0x05 || buf[1] != 0x01 { // 只支持 CONNECT
+	if requestHeader[0] != 0x05 || requestHeader[1] != 0x01 { // 只支持 CONNECT
 		return
 	}
 	var addr string
-	switch buf[3] {
+	switch requestHeader[3] {
 	case 0x01: // IPv4
-		addr = net.IP(buf[4:8]).String()
-		port := binary.BigEndian.Uint16(buf[8:10])
+		address := make([]byte, 6)
+		if _, err = io.ReadFull(conn, address); err != nil {
+			return
+		}
+		addr = net.IP(address[:4]).String()
+		port := binary.BigEndian.Uint16(address[4:6])
 		addr = net.JoinHostPort(addr, fmt.Sprint(int(port)))
 	case 0x03: // 域名
-		domainLen := int(buf[4])
-		addr = string(buf[5 : 5+domainLen])
-		port := binary.BigEndian.Uint16(buf[5+domainLen : 7+domainLen])
+		length := []byte{0}
+		if _, err = io.ReadFull(conn, length); err != nil {
+			return
+		}
+		domainAndPort := make([]byte, int(length[0])+2)
+		if _, err = io.ReadFull(conn, domainAndPort); err != nil {
+			return
+		}
+		addr = string(domainAndPort[:length[0]])
+		port := binary.BigEndian.Uint16(domainAndPort[length[0]:])
 		addr = net.JoinHostPort(addr, fmt.Sprint(int(port)))
 	case 0x04: // IPv6
-		addr = net.IP(buf[4:20]).String()
-		port := binary.BigEndian.Uint16(buf[20:22])
+		address := make([]byte, 18)
+		if _, err = io.ReadFull(conn, address); err != nil {
+			return
+		}
+		addr = net.IP(address[:16]).String()
+		port := binary.BigEndian.Uint16(address[16:])
 		addr = net.JoinHostPort(addr, fmt.Sprint(int(port)))
 	default:
 		return

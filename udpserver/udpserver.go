@@ -4,6 +4,7 @@ import (
 	servercontext "chimney3-go/sesrvercontext"
 	"log"
 	"net"
+	"sync"
 	"time"
 	"tun2proxylib/gvisorcore/buffer"
 	"tun2proxylib/udppackage"
@@ -21,7 +22,7 @@ func resolveUDPAddress(udpURL string) (*net.UDPAddr, error) {
 	return net.ResolveUDPAddr("udp", udpURL)
 }
 
-func serveLoop(ctx servercontext.ServerContext, conn *net.UDPConn) {
+func serveLoop(ctx servercontext.ServerContext, conn *net.UDPConn, writeMu *sync.Mutex) {
 	buf := buffer.Get()
 	defer buffer.Put(buf)
 
@@ -30,17 +31,25 @@ func serveLoop(ctx servercontext.ServerContext, conn *net.UDPConn) {
 			return
 		}
 
-		conn.SetReadDeadline(time.Now().Add(timeout * time.Second))
+		if err := conn.SetReadDeadline(time.Now().Add(timeout * time.Second)); err != nil {
+			log.Println("set UDP read deadline failed:", err)
+			continue
+		}
 		n, addr, err := conn.ReadFromUDP(buf)
 		if err != nil {
+			if netErr, ok := err.(net.Error); !ok || !netErr.Timeout() {
+				log.Println("read UDP packet failed:", err)
+				continue
+			}
 			continue
 		}
 
 		target, src, payload, err := udppackage.UnpackUDPData(buf[:n])
 		if err != nil {
+			log.Println("unpack UDP data failed:", err)
 			continue
 		}
-		go captureRemote(target, addr, src, payload, conn)
+		go captureRemote(target, addr, src, payload, conn, writeMu)
 	}
 }
 
@@ -72,10 +81,11 @@ func RunUdpServerWithCtx(ctx servercontext.ServerContext, udpURl string) {
 	}
 	defer conn.Close()
 
-	serveLoop(ctx, conn)
+	var writeMu sync.Mutex
+	serveLoop(ctx, conn, &writeMu)
 }
 
-func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UDPConn) {
+func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UDPConn, writeMu *sync.Mutex) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(" fatal error on udp server: ", err)
@@ -89,13 +99,22 @@ func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UD
 	}
 	defer remoteConn.Close()
 
-	remoteConn.SetWriteDeadline(time.Now().Add(timeout * time.Second))
-	remoteConn.Write(payload)
+	if err := remoteConn.SetWriteDeadline(time.Now().Add(timeout * time.Second)); err != nil {
+		log.Println("set remote UDP write deadline failed:", err)
+		return
+	}
+	if _, err := remoteConn.Write(payload); err != nil {
+		log.Println("write remote UDP packet failed:", err)
+		return
+	}
 
 	buf := buffer.Get()
 	defer buffer.Put(buf)
 
-	remoteConn.SetReadDeadline(time.Now().Add(timeout * time.Second))
+	if err := remoteConn.SetReadDeadline(time.Now().Add(timeout * time.Second)); err != nil {
+		log.Println("set remote UDP read deadline failed:", err)
+		return
+	}
 
 	n, _, err := remoteConn.ReadFromUDP(buf)
 	if err != nil {
@@ -109,6 +128,13 @@ func captureRemote(target, local, src *net.UDPAddr, payload []byte, conn *net.UD
 		return
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(timeout * time.Second))
-	conn.WriteToUDP(packet, local)
+	writeMu.Lock()
+	defer writeMu.Unlock()
+	if err := conn.SetWriteDeadline(time.Now().Add(timeout * time.Second)); err != nil {
+		log.Println("set UDP write deadline failed:", err)
+		return
+	}
+	if _, err := conn.WriteToUDP(packet, local); err != nil {
+		log.Println("write UDP response failed:", err)
+	}
 }
